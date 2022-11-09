@@ -3,6 +3,9 @@ uuid = "b36ab563-344f-407b-a36a-4f200bebf99c"
 authors = ["Songchen Tan"]
 version = "0.1.0"
 
+[deps]
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
 [compat]
 julia = "1"
 
