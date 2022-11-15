@@ -32,7 +32,7 @@ cb = function ()
 end
 
 data = Iterators.repeated((), 1000)
-Flux.train!(loss, Flux.params(network), data, Flux.ADAM(0.05),cb=cb)
+Flux.train!(loss, Flux.params(network), data, Flux.ADATaylor(0.05),cb=cb)
 
 # grid = 0:0.01:1
 # analytic_sol_func(x,y) = (sin(pi*x)*sin(pi*y))/(2pi^2)
