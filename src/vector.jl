@@ -1,62 +1,63 @@
 
-import Base: getindex, setindex!, size, *, broadcast
+import Base: getindex, setindex!, size, *
+import Base: BroadcastStyle, broadcasted, similar
 
-struct TaylorVector{T<:Number,N} <: AbstractArray{T, 1}
+export TaylorVector
+
+struct TaylorVector{T<:Number,N} <: AbstractVector{T}
     value::NTuple{N,Vector{T}}
 end
 
-TaylorVector(x::Vararg{T,N}) where {T<:Vector,N} = TaylorVector(x)
+TaylorVector(xs::Vararg{T,N}) where {T<:Vector,N} = TaylorVector(xs)
+value(t::TaylorVector) = t.value
 
-value(tv::TaylorVector) = tv.value
-
-Base.size(tv::TaylorVector) = Base.size(value(tv)[1])
+Base.size(t::TaylorVector) = Base.size(value(t)[1])
 Base.IndexStyle(::Type{<:TaylorVector}) = IndexLinear()
 
-function getindex(tv::TaylorVector{T,N}, i::Int) where {T,N}
-    v = value(tv)
-    return Taylor([getindex(vec, i) for vec in v]...)
+function getindex(t::TaylorVector{T,N}, i::Int) where {T,N}
+    v = value(t)
+    return TaylorScalar([getindex(vec, i) for vec in v]...)
 end
 
-function setindex!(tv::TaylorVector{T,N}, t::Taylor{T,N}, i::Int) where {T,N}
-    vval = value(tv)
-    val = value(t)
+function setindex!(ts::TaylorVector{T,N}, t::TaylorScalar{T,N}, i::Int) where {T,N}
+    vs, v = value(ts), value(t)
     for j in 1:N
-        setindex!(vval[j], val[j], i)
+        setindex!(vs[j], v[j], i)
     end
 end
 
-function *(A::Matrix{T}, x::TaylorVector{T,N}) where {T,N}
-    v = value(x)
+function *(A::AbstractMatrix, t::TaylorVector{T,N}) where {T,N}
+    v = value(t)
     return TaylorVector([A * vec for vec in v]...)
 end
 
-function *(a::S, x::TaylorVector{T,N}) where {S<:Number,T<:Number,N}
-    v = value(x)
-    return TaylorVector([a * vec for vec in v]...)
+# function *(a::S, t::TaylorVector{T,N}) where {S<:Number,T<:Number,N}
+#     v = value(t)
+#     return TaylorVector([a * vec for vec in v]...)
+# end
+
+# *(t::TaylorVector{T,N}, a::S) where {S<:Number,T<:Number,N} = *(a, t)
+
+BroadcastStyle(::Type{<:TaylorVector}) = Broadcast.ArrayStyle{TaylorVector}()
+
+function similar(t::TaylorVector{T,N}) where {T, N}
+    v = value(t)
+    TaylorVector([similar(vec) for vec in v]...)
 end
 
-*(x::S, a::TaylorVector{T,N}) where {S<:Number,T<:Number,N} = *(a, x)
-
-function +(a::Vector{T}, x::TaylorVector{T,N}) where {T<:Number,N}
-    v = value(x)
-    return TaylorVector([a + vec for vec in v]...)
-end
-
-Base.BroadcastStyle(::Type{<:TaylorVector}) = Broadcast.ArrayStyle{TaylorVector}()
-
-function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{TaylorVector}}, ::Type{ElType}) where ElType
-    N = container_info(bc)
-    TaylorVector([similar(Array{ElType}, axes(bc)) for i = 1:N]...)
+function similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{TaylorVector}}, ::Type{ElType}) where ElType
+    t = container_info(bc)
+    similar(t)
 end
 
 container_info(bc::Base.Broadcast.Broadcasted) = container_info(bc.args)
-container_info(args::Tuple) = container_info(container_info(args[1]), Base.tail(args))
+container_info(args::Tuple) = begin
+    container_info(container_info(args[1]), Base.tail(args))
+end
+
 container_info(x) = x
 container_info(::Tuple{}) = nothing
-container_info(::TaylorVector{T,N}, rest) where {T,N} = N
-container_info(::Any, rest) = container_info(rest)
+container_info(t::TaylorVector{T,N}, rest...) where {T,N} = t
+container_info(::Any, rest...) = container_info(rest...)
 
-# function broadcast(f::typeof(+), x::TaylorVector{T,N}, a::Vararg) where {T<:Number,N}
-#     v = value(x)
-#     return TaylorVector([broadcast(f, vec, a) for vec in v]...)
-# end
+broadcasted(::Broadcast.ArrayStyle{TaylorVector}, ::typeof(sin), t::TaylorVector) = "Hello"
