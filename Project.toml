@@ -1,19 +1,10 @@
 name = "TaylorDiff"
 uuid = "b36ab563-344f-407b-a36a-4f200bebf99c"
-authors = ["Songchen Tan"]
+authors = ["Songchen Tan <i@tansongchen.com>"]
 version = "0.1.0"
 
 [deps]
-Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-julia = "1"
-
-[extras]
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
+julia = "1.8"
