@@ -9,7 +9,9 @@ struct TaylorVector{T<:Number,N} <: AbstractVector{T}
 end
 
 TaylorVector(xs::Vararg{T,N}) where {T<:Vector,N} = TaylorVector(xs)
+@adjoint TaylorVector(v) = TaylorVector(v), t̄ -> (t̄.value,)
 value(t::TaylorVector) = t.value
+@adjoint value(t::TaylorVector) = value(t), v̄ -> (TaylorVector(v̄),)
 
 Base.size(t::TaylorVector) = Base.size(value(t)[1])
 Base.IndexStyle(::Type{<:TaylorVector}) = IndexLinear()
@@ -17,6 +19,16 @@ Base.IndexStyle(::Type{<:TaylorVector}) = IndexLinear()
 function getindex(t::TaylorVector{T,N}, i::Int) where {T,N}
     v = value(t)
     return TaylorScalar([getindex(vec, i) for vec in v]...)
+end
+
+elementvector(x::T, i, n) where {T} = [zeros(T,i-1); [x]; zeros(T, n-i)]
+
+@adjoint getindex(ts::TaylorVector{T,N}, i::Int) where {N, T<:Number} = begin
+    getindex(ts, i), t̄ -> (
+        let v̄ = value(t̄)
+            TaylorVector([elementvector(x, i, length(ts)) for x in v̄]...)
+        end
+    , nothing)
 end
 
 function setindex!(ts::TaylorVector{T,N}, t::TaylorScalar{T,N}, i::Int) where {T,N}
