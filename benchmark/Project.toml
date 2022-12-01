@@ -1,0 +1,5 @@
+[deps]
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
+TaylorDiff = "b36ab563-344f-407b-a36a-4f200bebf99c"
+TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
