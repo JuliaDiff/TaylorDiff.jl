@@ -8,8 +8,15 @@ struct TaylorScalar{T<:Number,N}
     value::NTuple{N,T}
 end
 
-TaylorScalar(xs::Vararg{T,N}) where {T<:Number,N} = TaylorScalar(xs)
-value(t::TaylorScalar) = t.value
+@inline TaylorScalar(xs::Vararg{T,N}) where {T<:Number,N} = TaylorScalar(xs)
+@generated function TaylorScalar{T,N}(x::T) where {T<:Number, N}
+    return quote
+        $(Expr(:meta, :inline))
+        TaylorScalar((x, one(x), $(zeros(N - 2)...)))
+    end
+end
+@inline value(t::TaylorScalar) = t.value
+@inline Base.@propagate_inbounds getorder(t::TaylorScalar, order::Int) = t.value[order + 1]
 
 zero(::TaylorScalar{T,N}) where {T, N} = TaylorScalar(zeros(T, N)...)
 one(::TaylorScalar{T,N}) where {T, N} = TaylorScalar(one(T), zeros(T, N-1)...)
