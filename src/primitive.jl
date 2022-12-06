@@ -97,7 +97,9 @@ for func in (:sin, :cos)
         else
             ex = :($ex; TaylorScalar($([Symbol('c', i) for i in 1:N]...)))
         end
-        return :(@inbounds $ex)
+        return quote
+            @inbounds $ex
+        end
     end
 end
 
