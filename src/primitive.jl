@@ -165,7 +165,7 @@ for op in [:>, :<, :(==), :(>=), :(<=)]
     @eval $op(a::TaylorScalar, b::TaylorScalar) = $op(value(a)[1], value(b)[1])
 end
 
-@generated function ^(t::TaylorScalar{T,N}, n::Number) where {T, N}
+@generated function ^(t::TaylorScalar{T,N}, n::S) where {S<:Number, T, N}
     ex = quote
         v = value(t)
         v1 = ^(v[1], n)
@@ -175,7 +175,7 @@ end
             $ex
             $(Symbol('v', i)) = +($([
                 :((n * $(binomial(i - 2, j - 1)) - $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) * v[$i + 1 - $j])
-            for j = 1:i-1]...))
+            for j = 1:i-1]...)) / v[1]
         end
     end
     ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))

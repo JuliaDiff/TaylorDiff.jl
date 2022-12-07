@@ -3,14 +3,14 @@ export derivative
 
 @inline derivative(f::Function, x::T, order::Int64) where {T<:Number} = derivative(f, x, Val{order + 1}())
 
-@inline function derivative(f::Function, x::T, ::Val{N}) where {T<:Number, N}
+@inline derivative(f::Function, x::Vector{T}, l::Vector{T}, order::Int64) where {T<:Number} = derivative(f, x, l, Val{order + 1}())
+
+@inline function derivative(f::F, x::T, ::Val{N}) where {F, T<:Number, N}
     t = TaylorScalar{T,N}(x)
     return getindex(value(f(t)), N)
 end
 
-@inline function derivative(f::Function, x::Vector{T}, index::Int64, order::Int64) where {T<:Number}
-    pertub = [ind == index ? one(T) : zero(T) for ind in eachindex(x)]
-    t = TaylorVector(x, pertub, [zeros(T, length(x)) for i in 1:(order - 1)]...)
-    result = f(t)
-    return getindex(value(result), order + 1)
+@inline function derivative(f::F, x::Vector{T}, l::Vector{T}, ::Val{N}) where {F, T<:Number, N}
+    t = TaylorVector{T,N}(x, l)
+    return getindex(value(f(t)), N)
 end

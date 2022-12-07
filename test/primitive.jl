@@ -1,5 +1,4 @@
 
-
 @testset "Unary functions" begin
     @test derivative(exp, 1., 10) ≈ exp(1.)
     @test derivative(expm1, 1., 10) ≈ exp(1.)
@@ -20,6 +19,5 @@
 end
 
 @testset "Binary functions" begin
-    cube(x) = x^3
-    @test derivative(cube, 1., 2) ≈ 6
+    @test derivative(x -> x^3, 3., 2) ≈ 18.
 end

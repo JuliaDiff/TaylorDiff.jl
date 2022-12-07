@@ -1,4 +1,3 @@
-
 using Lux, Random
 
 @testset "Lux forward evaluation" begin

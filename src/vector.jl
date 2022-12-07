@@ -1,5 +1,6 @@
 
-import Base: getindex, setindex!, size, *
+using Zygote: @adjoint
+import Base: getindex, setindex!, size, +, *
 import Base: BroadcastStyle, broadcasted, similar
 
 export TaylorVector
@@ -13,13 +14,19 @@ TaylorVector(xs::Vararg{T,N}) where {T<:Vector,N} = TaylorVector(xs)
 value(t::TaylorVector) = t.value
 @adjoint value(t::TaylorVector) = value(t), v̄ -> (TaylorVector(v̄),)
 
+@generated function TaylorVector{T,N}(x::Vector{T}, l::Vector{T}) where {T<:Number, N}
+    return quote
+        $(Expr(:meta, :inline))
+        TaylorVector((x, l, $(
+            fill(:(zeros(T, length(x))), N - 2)...
+        )))
+    end
+end
+
 Base.size(t::TaylorVector) = Base.size(value(t)[1])
 Base.IndexStyle(::Type{<:TaylorVector}) = IndexLinear()
 
-function getindex(t::TaylorVector{T,N}, i::Int) where {T,N}
-    v = value(t)
-    return TaylorScalar([getindex(vec, i) for vec in v]...)
-end
+@inline Base.@propagate_inbounds getindex(t::TaylorVector{T,N}, i::I) where {T,N,I<:Integer} = TaylorScalar{T,N}(map(x -> x[i], value(t)))
 
 elementvector(x::T, i, n) where {T} = [zeros(T,i-1); [x]; zeros(T, n-i)]
 
@@ -31,36 +38,23 @@ elementvector(x::T, i, n) where {T} = [zeros(T,i-1); [x]; zeros(T, n-i)]
     , nothing)
 end
 
-function setindex!(ts::TaylorVector{T,N}, t::TaylorScalar{T,N}, i::Int) where {T,N}
-    vs, v = value(ts), value(t)
-    for j in 1:N
-        setindex!(vs[j], v[j], i)
-    end
-end
+@inline Base.@propagate_inbounds setindex!(ts::TaylorVector{T,N}, t::TaylorScalar{T,N}, i::Int) where {T,N} = map((vs, v) -> vs[i] = v, value(ts), value(t))
 
-function *(A::AbstractMatrix, t::TaylorVector{T,N}) where {T,N}
-    v = value(t)
-    return TaylorVector([A * vec for vec in v]...)
-end
+@inline *(A::AbstractMatrix{S}, t::TaylorVector{T,N}) where {S<:Number,T,N} = TaylorVector{T,N}(map(v -> A * v, value(t)))
 
-# function *(a::S, t::TaylorVector{T,N}) where {S<:Number,T<:Number,N}
-#     v = value(t)
-#     return TaylorVector([a * vec for vec in v]...)
-# end
+@inline +(a::AbstractVector{S}, t::TaylorVector{T,N}) where {S<:Number,T,N} = TaylorVector{T,N}(map(v -> a + v, value(t)))
 
-# *(t::TaylorVector{T,N}, a::S) where {S<:Number,T<:Number,N} = *(a, t)
+@inline +(t::TaylorVector{T,N}, a::AbstractVector{S}) where {S<:Number,T,N} = a + t
+
+@inline *(a::S, t::TaylorVector{T,N}) where {S<:Number,T,N} = TaylorVector{T,N}(map(v -> a * v, value(t)))
+
+@inline *(t::TaylorVector{T,N}, a::S) where {S<:Number,T,N} = a * t
 
 BroadcastStyle(::Type{<:TaylorVector}) = Broadcast.ArrayStyle{TaylorVector}()
 
-function similar(t::TaylorVector{T,N}) where {T, N}
-    v = value(t)
-    TaylorVector([similar(vec) for vec in v]...)
-end
+similar(t::TaylorVector{T,N}) where {T, N} = TaylorVector{T,N}(map(similar, value(t)))
 
-function similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{TaylorVector}}, ::Type{ElType}) where ElType
-    t = container_info(bc)
-    similar(t)
-end
+similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{TaylorVector}}, ::Type{ElType}) where ElType = similar(container_info(bc))
 
 container_info(bc::Base.Broadcast.Broadcasted) = container_info(bc.args)
 container_info(args::Tuple) = begin
@@ -72,4 +66,4 @@ container_info(::Tuple{}) = nothing
 container_info(t::TaylorVector{T,N}, rest...) where {T,N} = t
 container_info(::Any, rest...) = container_info(rest...)
 
-broadcasted(::Broadcast.ArrayStyle{TaylorVector}, ::typeof(sin), t::TaylorVector) = "Hello"
+# @inline broadcasted(::Broadcast.ArrayStyle{TaylorVector}, ::typeof(exp), t::TaylorVector{T,N}) where {T,N} = TaylorVector{T,N}(map(v -> exp.(v), value(t)))
