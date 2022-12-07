@@ -1,7 +1,8 @@
 using TaylorDiff
 using Test
 
-include("primitive.jl")
+include("scalar.jl")
 include("vector.jl")
+include("primitive.jl")
 include("zygote.jl")
-include("lux.jl")
+# include("lux.jl")
