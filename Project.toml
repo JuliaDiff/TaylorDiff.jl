@@ -4,7 +4,6 @@ authors = ["Songchen Tan <i@tansongchen.com>"]
 version = "0.1.0"
 
 [deps]
-TestEnv = "1e6cf692-eddd-4d53-88a5-2d735e33781b"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
