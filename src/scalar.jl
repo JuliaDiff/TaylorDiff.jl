@@ -15,6 +15,15 @@ end
         TaylorScalar((x, one(x), $(zeros(N - 2)...)))
     end
 end
+@generated function TaylorScalar{T,N}(t::TaylorScalar{T,M}) where {T<:Number, N, M}
+    N <= M ? quote
+        $(Expr(:meta, :inline))
+        TaylorScalar(value(t)[1:N])
+    end : quote
+        $(Expr(:meta, :inline))
+        TaylorScalar((value(t)..., $(zeros(N - M)...)))
+    end
+end
 @inline value(t::TaylorScalar) = t.value
 @inline Base.@propagate_inbounds getorder(t::TaylorScalar, order::Int) = t.value[order + 1]
 

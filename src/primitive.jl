@@ -10,11 +10,11 @@ Taylor{T,N} = Union{TaylorScalar{T,N}, TaylorVector{T,N}}
 
 # Unary
 
-+(t::Taylor) = t
--(t::Taylor) = -1 * t
-sqrt(t::Taylor) = ^(t, .5)
-cbrt(t::Taylor) = ^(t, 1/3)
-inv(t::Taylor) = ^(t, -1)
+@inline +(t::Taylor) = t
+@inline -(t::Taylor) = -1 * t
+@inline sqrt(t::Taylor) = ^(t, .5)
+@inline cbrt(t::Taylor) = ^(t, 1/3)
+@inline inv(t::Taylor) = 1 / t
 
 for func in (:exp, :expm1, :exp2, :exp10)
     @eval @generated function $func(t::TaylorScalar{T,N}) where {T, N}
@@ -180,4 +180,15 @@ end
     end
     ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
     return :(@inbounds $ex)
+end
+
+@generated function raise(f::T, df::TaylorScalar{T,M}, t::TaylorScalar{T,N}) where {T,M,N} # M + 1 == N
+    return quote
+        vdf, vt = value(df), value(t)
+        @inbounds TaylorScalar(f, $([:(
+            +($([:(
+                $(binomial(i - 1, j - 1)) * vdf[$j] * vt[$(i + 2 - j)]
+            ) for j = 1:i]...))
+        ) for i = 1:M]...))
+    end
 end

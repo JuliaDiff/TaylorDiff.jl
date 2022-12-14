@@ -16,6 +16,9 @@
     @test derivative(cos, 1., 2) ≈ -cos(1.)
     @test derivative(cos, 1., 3) ≈ sin(1.)
     @test derivative(cos, 1., 4) ≈ cos(1.)
+    @test derivative(asin, .5, 1) ≈ 2 / √3
+    @test derivative(acos, .5, 1) ≈ -2 / √3
+    @test derivative(atan, 1., 1) ≈ .5
 end
 
 @testset "Binary functions" begin
