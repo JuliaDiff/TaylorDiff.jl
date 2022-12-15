@@ -12,7 +12,7 @@ end
 @generated function TaylorScalar{T,N}(x::T) where {T<:Number, N}
     return quote
         $(Expr(:meta, :inline))
-        TaylorScalar((x, one(x), $(zeros(N - 2)...)))
+        TaylorScalar((x, one(x), $(zeros(T, N - 2)...)))
     end
 end
 @generated function TaylorScalar{T,N}(t::TaylorScalar{T,M}) where {T<:Number, N, M}
@@ -21,7 +21,7 @@ end
         TaylorScalar(value(t)[1:N])
     end : quote
         $(Expr(:meta, :inline))
-        TaylorScalar((value(t)..., $(zeros(N - M)...)))
+        TaylorScalar((value(t)..., $(zeros(T, N - M)...)))
     end
 end
 @inline value(t::TaylorScalar) = t.value
@@ -35,9 +35,13 @@ one(::Type{TaylorScalar{T,N}}) where {T, N} = TaylorScalar(one(T), zeros(T, N-1)
 
 adjoint(t::TaylorScalar) = t
 promote_rule(::Type{TaylorScalar{T,N}}, ::Type{S}) where {T<:Number,S<:Number,N} = TaylorScalar{promote_type(T,S),N}
-convert(::Type{TaylorScalar{T,N}}, x::T) where {T<:Number,N} = TaylorScalar(x, zeros(T, N - 1)...)
-convert(::Type{TaylorScalar{T,N}}, x::S) where {T<:Number,S<:Number,N} = TaylorScalar(convert(T, x), zeros(T, N - 1)...)
-convert(::Type{TaylorScalar{T,N}}, x::TaylorScalar{S,N}) where {T<:Number,S<:Number,N} = TaylorScalar([convert(T, v) for v in value(x)]...)
+@generated convert(::Type{TaylorScalar{T,N}}, t::T) where {T<:Number,N} = quote
+    $(Expr(:meta, :inline))
+    TaylorScalar(t, $(zeros(T, N - 1)...))
+end
+@inline convert(::Type{TaylorScalar{T,N}}, t::S) where {T<:Number,S<:Number,N} = convert(TaylorScalar{T,N}, convert(T, t))
+@inline convert(::Type{TaylorScalar{T,N}}, t::TaylorScalar{T,N}) where {T<:Number,N} = t
+@inline convert(::Type{TaylorScalar{T,N}}, t::TaylorScalar{S,N}) where {T<:Number,S<:Number,N} = TaylorScalar{T,N}(map(x -> convert(T, x), value(t)))
 
 @adjoint value(t::TaylorScalar) = value(t), v̄ -> (TaylorScalar(v̄),)
 @adjoint TaylorScalar(v) = TaylorScalar(v), t̄ -> (t̄.value,)

@@ -11,18 +11,22 @@ dummy = (NoTangent(), 1)
 @syms t₁
 for func in functions
     F = typeof(func)
+    # base case
+    @eval function (op::$F)(t::TaylorScalar{T,2}) where {T}
+        t0, t1 = value(t)
+        TaylorScalar{T,2}(frule((NoTangent(), t1), op, t0))
+    end
     der = frule(dummy, func, t₁)[2]
-    # if der isa Pow && der.exp == -1
-    #     invder = der.base
-    # end
+    term, raiser = der isa Pow && der.exp == -1 ? (der.base, raiseinv) : (der, raise)
+    # recursion by raising
     @eval @generated function (op::$F)(t::TaylorScalar{T,N}) where {T,N}
         der_expr = $(QuoteNode(toexpr(der)))
-        f = $(func)
+        f = $func
         quote
             $(Expr(:meta, :inline))
             t₁ = TaylorScalar{T,N-1}(t)
             df = $der_expr
-            TaylorDiff.raise($f(value(t)[1]), df, t)
+            $$raiser($f(value(t)[1]), df, t)
         end
     end
 end

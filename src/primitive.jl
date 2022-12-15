@@ -106,32 +106,17 @@ end
 # Binary
 
 for op in [:+, :*, :-, :/]
-    @eval $op(x::Number, y::TaylorScalar{T,N}) where {T,N} = $op(promote(x, y)...)
-    @eval $op(x::TaylorScalar, y::Number) = $op(promote(x, y)...)
+    @eval @inline $op(x::S, y::TaylorScalar{T,N}) where {S<:Number,T,N} = $op(promote(x, y)...)
+    @eval @inline $op(x::TaylorScalar{T,N}, y::S) where {S<:Number,T,N} = $op(promote(x, y)...)
 end
 
 for op in [:(==), :(<), :(<=)]
-    @eval $op(a::Number, b::Taylor) = $op(a, value(b)[1])
-    @eval $op(a::Taylor, b::Number) = $op(value(a)[1], b)
+    @eval @inline $op(a::S, b::Taylor{T,N}) where {S<:Number,T,N} = $op(a, value(b)[1])
+    @eval @inline $op(a::Taylor{T,N}, b::S) where {S<:Number,T,N} = $op(value(a)[1], b)
 end
 
-@generated function +(a::TaylorScalar{T,N}, b::TaylorScalar{T,N}) where {T,N}
-    return quote
-        va, vb = value(a), value(b)
-        @inbounds TaylorScalar(
-            $([:(va[$i] + vb[$i]) for i = 1:N]...)
-        )
-    end
-end
-
-@generated function -(a::TaylorScalar{T,N}, b::TaylorScalar{T,N}) where {T,N}
-    return quote
-        va, vb = value(a), value(b)
-        @inbounds TaylorScalar(
-            $([:(va[$i] - vb[$i]) for i = 1:N]...)
-        )
-    end
-end
+@inline +(a::TaylorScalar, b::TaylorScalar) = TaylorScalar(map(+, value(a), value(b)))
+@inline -(a::TaylorScalar, b::TaylorScalar) = TaylorScalar(map(-, value(a), value(b)))
 
 @generated function *(a::TaylorScalar{T,N}, b::TaylorScalar{T,N}) where {T,N}
     return quote
@@ -184,6 +169,7 @@ end
 
 @generated function raise(f::T, df::TaylorScalar{T,M}, t::TaylorScalar{T,N}) where {T,M,N} # M + 1 == N
     return quote
+        $(Expr(:meta, :inline))
         vdf, vt = value(df), value(t)
         @inbounds TaylorScalar(f, $([:(
             +($([:(
@@ -191,4 +177,21 @@ end
             ) for j = 1:i]...))
         ) for i = 1:M]...))
     end
+end
+
+@generated function raiseinv(f::T, df::TaylorScalar{T,M}, t::TaylorScalar{T,N}) where {T,M,N} # M + 1 == N
+    ex = quote
+        vdf, vt = value(df), value(t)
+        v1 = vt[2] / vdf[1]
+    end
+    for i = 2:M
+        ex = quote
+            $ex
+            $(Symbol('v', i)) = (vt[$i + 1] - +($([
+                :($(binomial(i - 1, j)) * $(Symbol('v', j)) * vdf[$i + 1 - $j])
+            for j = 1:i-1]...))) / vdf[1]
+        end
+    end
+    ex = :($ex; TaylorScalar(f, $([Symbol('v', i) for i in 1:M]...)))
+    return :(@inbounds $ex)
 end
