@@ -27,11 +27,17 @@ end
 @inline value(t::TaylorScalar) = t.value
 @inline Base.@propagate_inbounds getorder(t::TaylorScalar, order::Int) = t.value[order + 1]
 
-zero(::TaylorScalar{T,N}) where {T, N} = TaylorScalar(zeros(T, N)...)
-one(::TaylorScalar{T,N}) where {T, N} = TaylorScalar(one(T), zeros(T, N-1)...)
+@generated zero(::Type{TaylorScalar{T,N}}) where {T, N} = quote
+    $(Expr(:meta, :inline))
+    TaylorScalar($(zeros(T, N)...))
+end
+@generated one(::Type{TaylorScalar{T,N}}) where {T, N} = quote
+    $(Expr(:meta, :inline))
+    TaylorScalar(one(T), $(zeros(T, N - 1)...))
+end
 
-zero(::Type{TaylorScalar{T,N}}) where {T, N} = TaylorScalar(zeros(T, N)...)
-one(::Type{TaylorScalar{T,N}}) where {T, N} = TaylorScalar(one(T), zeros(T, N-1)...)
+@inline zero(::TaylorScalar{T,N}) where {T, N} = zero(TaylorScalar{T,N})
+@inline one(::TaylorScalar{T,N}) where {T, N} = one(TaylorScalar{T,N})
 
 adjoint(t::TaylorScalar) = t
 promote_rule(::Type{TaylorScalar{T,N}}, ::Type{S}) where {T<:Number,S<:Number,N} = TaylorScalar{promote_type(T,S),N}
