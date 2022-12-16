@@ -138,7 +138,7 @@ end
         ex = quote
             $ex
             $(Symbol('v', i)) = (va[$i] - +($([
-                :($(binomial(i - 1, j)) * $(Symbol('v', j)) * vb[$i + 1 - $j])
+                :($(binomial(i - 1, j - 1)) * $(Symbol('v', j)) * vb[$i + 1 - $j])
             for j = 1:i-1]...))) / vb[1]
         end
     end
