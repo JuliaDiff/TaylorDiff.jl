@@ -6,11 +6,11 @@ DocMeta.setdocmeta!(TaylorDiff, :DocTestSetup, :(using TaylorDiff); recursive=tr
 makedocs(;
     modules=[TaylorDiff],
     authors="Songchen Tan <i@tansongchen.com> and contributors",
-    repo="https://github.com/tansongchen/TaylorDiff.jl/blob/{commit}{path}#{line}",
+    repo="https://github.com/JuliaDiff/TaylorDiff.jl/blob/{commit}{path}#{line}",
     sitename="TaylorDiff.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://tansongchen.github.io/TaylorDiff.jl",
+        canonical="https://juliadiff.org/TaylorDiff.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -20,6 +20,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/tansongchen/TaylorDiff.jl",
+    repo="github.com/JuliaDiff/TaylorDiff.jl",
     devbranch="main",
 )
