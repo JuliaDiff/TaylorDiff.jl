@@ -4,18 +4,46 @@ import Base: zero, one, convert, adjoint, promote_rule
 
 export TaylorScalar
 
-struct TaylorScalar{T<:Number,N}
-    value::NTuple{N,T}
+"""
+    TaylorScalar{T <: Number, N}
+
+Representation of Taylor polynomials.
+
+# Fields
+
+- `value::NTuple{N, T}`: i-th element of this stores the (i-1)-th derivative
+"""
+struct TaylorScalar{T <: Number, N}
+    value::NTuple{N, T}
 end
 
-@inline TaylorScalar(xs::Vararg{T,N}) where {T<:Number,N} = TaylorScalar(xs)
-@generated function TaylorScalar{T,N}(x::T) where {T<:Number, N}
+@inline TaylorScalar(xs::Vararg{T, N}) where {T <: Number, N} = TaylorScalar(xs)
+
+"""
+    TaylorScalar{T, N}(x::T) where {T <: Number, N}
+
+Construct a seed with unit first-order perturbation.
+"""
+@generated function TaylorScalar{T, N}(x::T) where {T <: Number, N}
     return quote
         $(Expr(:meta, :inline))
         TaylorScalar((x, one(x), $(zeros(T, N - 2)...)))
     end
 end
-@generated function TaylorScalar{T,N}(t::TaylorScalar{T,M}) where {T<:Number, N, M}
+
+"""
+    TaylorScalar{T, N}(x::T, d::T) where {T <: Number, N}
+
+Construct a seed with arbitrary first-order perturbation.
+"""
+@generated function TaylorScalar{T, N}(x::T, d::T) where {T <: Number, N}
+    return quote
+        $(Expr(:meta, :inline))
+        TaylorScalar((x, d, $(zeros(T, N - 2)...)))
+    end
+end
+
+@generated function TaylorScalar{T, N}(t::TaylorScalar{T, M}) where {T <: Number, N, M}
     N <= M ? quote
         $(Expr(:meta, :inline))
         TaylorScalar(value(t)[1:N])
@@ -27,28 +55,48 @@ end
 @inline value(t::TaylorScalar) = t.value
 @inline Base.@propagate_inbounds getorder(t::TaylorScalar, order::Int) = t.value[order + 1]
 
-@generated zero(::Type{TaylorScalar{T,N}}) where {T, N} = quote
-    $(Expr(:meta, :inline))
-    TaylorScalar($(zeros(T, N)...))
+@generated function zero(::Type{TaylorScalar{T, N}}) where {T, N}
+    quote
+        $(Expr(:meta, :inline))
+        TaylorScalar($(zeros(T, N)...))
+    end
 end
-@generated one(::Type{TaylorScalar{T,N}}) where {T, N} = quote
-    $(Expr(:meta, :inline))
-    TaylorScalar(one(T), $(zeros(T, N - 1)...))
+@generated function one(::Type{TaylorScalar{T, N}}) where {T, N}
+    quote
+        $(Expr(:meta, :inline))
+        TaylorScalar(one(T), $(zeros(T, N - 1)...))
+    end
 end
 
-@inline zero(::TaylorScalar{T,N}) where {T, N} = zero(TaylorScalar{T,N})
-@inline one(::TaylorScalar{T,N}) where {T, N} = one(TaylorScalar{T,N})
+@inline zero(::TaylorScalar{T, N}) where {T, N} = zero(TaylorScalar{T, N})
+@inline one(::TaylorScalar{T, N}) where {T, N} = one(TaylorScalar{T, N})
 
 adjoint(t::TaylorScalar) = t
-promote_rule(::Type{TaylorScalar{T,N}}, ::Type{S}) where {T<:Number,S<:Number,N} = TaylorScalar{promote_type(T,S),N}
-@generated convert(::Type{TaylorScalar{T,N}}, t::T) where {T<:Number,N} = quote
-    $(Expr(:meta, :inline))
-    TaylorScalar(t, $(zeros(T, N - 1)...))
+function promote_rule(::Type{TaylorScalar{T, N}},
+                      ::Type{S}) where {T <: Number, S <: Number, N}
+    TaylorScalar{promote_type(T, S), N}
 end
-@inline convert(::Type{TaylorScalar{T,N}}, t::S) where {T<:Number,S<:Number,N} = convert(TaylorScalar{T,N}, convert(T, t))
-@inline convert(::Type{TaylorScalar{T,N}}, t::TaylorScalar{T,N}) where {T<:Number,N} = t
-@inline convert(::Type{TaylorScalar{T,N}}, t::TaylorScalar{S,N}) where {T<:Number,S<:Number,N} = TaylorScalar{T,N}(map(x -> convert(T, x), value(t)))
+@generated function convert(::Type{TaylorScalar{T, N}}, t::T) where {T <: Number, N}
+    quote
+        $(Expr(:meta, :inline))
+        TaylorScalar(t, $(zeros(T, N - 1)...))
+    end
+end
+@inline function convert(::Type{TaylorScalar{T, N}},
+                         t::S) where {T <: Number, S <: Number, N}
+    convert(TaylorScalar{T, N}, convert(T, t))
+end
+@inline function convert(::Type{TaylorScalar{T, N}},
+                         t::TaylorScalar{T, N}) where {T <: Number, N}
+    t
+end
+@inline function convert(::Type{TaylorScalar{T, N}},
+                         t::TaylorScalar{S, N}) where {T <: Number, S <: Number, N}
+    TaylorScalar{T, N}(map(x -> convert(T, x), value(t)))
+end
 
 @adjoint value(t::TaylorScalar) = value(t), v̄ -> (TaylorScalar(v̄),)
 @adjoint TaylorScalar(v) = TaylorScalar(v), t̄ -> (t̄.value,)
-@adjoint getindex(t::NTuple{N,T}, i::Int) where {N, T<:Number} = getindex(t, i), v̄ -> (tuple(zeros(T,i-1)..., v̄, zeros(T, N-i)...), nothing)
+@adjoint function getindex(t::NTuple{N, T}, i::Int) where {N, T <: Number}
+    getindex(t, i), v̄ -> (tuple(zeros(T, i - 1)..., v̄, zeros(T, N - i)...), nothing)
+end

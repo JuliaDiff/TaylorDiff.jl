@@ -9,7 +9,7 @@ using Lux, Random
     # Parameter and State Variables
     ps, st = Lux.setup(rng, model)
     # Dummy Input
-    x = TaylorVector([1., 1.], [1., 0.])
+    x = TaylorVector([1.0, 1.0], [1.0, 0.0])
     # Run the model
     y, st = Lux.apply(model, x, ps, st)
 end

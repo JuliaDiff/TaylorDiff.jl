@@ -1,2 +1,1 @@
-@testset "Scalar" begin
-end
+@testset "Scalar" begin end

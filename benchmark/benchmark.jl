@@ -4,7 +4,7 @@ using Lux
 using BenchmarkTools
 using Plots
 
-function benchmark_scalar_function(f::F, x::T) where {F, T<:Number}
+function benchmark_scalar_function(f::F, x::T) where {F, T <: Number}
     f1 = x -> ForwardDiff.derivative(f, x)
     f2 = x -> ForwardDiff.derivative(f1, x)
     f3 = x -> ForwardDiff.derivative(f2, x)
@@ -40,7 +40,7 @@ function generate_mlp(input, hidden)
     return x -> first(W₂ * σ.(W₁ * x + b₁) + b₂)
 end
 
-function benchmark_mlp(f::F, x::Vector{T}, l::Vector{T}) where {F, T<:Number}
+function benchmark_mlp(f::F, x::Vector{T}, l::Vector{T}) where {F, T <: Number}
     f1 = z -> ForwardDiff.derivative(t -> f(x + t * l), z)
     f2 = x -> ForwardDiff.derivative(f1, x)
     f3 = x -> ForwardDiff.derivative(f2, x)
@@ -70,8 +70,12 @@ function benchmark_mlp(f::F, x::Vector{T}, l::Vector{T}) where {F, T<:Number}
     return nested, taylor
 end
 
-nested_scalar, taylor_scalar = benchmark_scalar_function(sin, 1.)
-plot(1:10, [map(time, nested_scalar) map(time, taylor_scalar)], labels=["Nested" "Taylor"], xlims=(0, 7), ylims=(0, 400), xlabel="Order", ylabel="Time (ns)")
+nested_scalar, taylor_scalar = benchmark_scalar_function(sin, 1.0)
+plot(1:10, [map(time, nested_scalar) map(time, taylor_scalar)],
+     labels = ["Nested" "Taylor"], xlims = (0, 7), ylims = (0, 400), xlabel = "Order",
+     ylabel = "Time (ns)")
 
-nested_mlp, taylor_mlp = benchmark_mlp(generate_mlp(2, 16), [1., 1.], [1., 1.])
-plot(1:10, [map(time, nested_mlp) map(x -> time(x) * .7, taylor_mlp)], labels=["Nested" "Taylor"], xlims=(0, 7), ylims=(0, 10000), xlabel="Order", ylabel="Time (ns)")
+nested_mlp, taylor_mlp = benchmark_mlp(generate_mlp(2, 16), [1.0, 1.0], [1.0, 1.0])
+plot(1:10, [map(time, nested_mlp) map(x -> time(x) * 0.7, taylor_mlp)],
+     labels = ["Nested" "Taylor"], xlims = (0, 7), ylims = (0, 10000), xlabel = "Order",
+     ylabel = "Time (ns)")
