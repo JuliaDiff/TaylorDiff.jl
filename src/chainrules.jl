@@ -10,16 +10,16 @@ function rrule(::typeof(value), t::TaylorScalar)
     return value(t), value_pullback
 end
 
-@generated function wrap_derivative(d̄::T, i::Integer, N::Integer) where T <: Number
+@generated function wrap_derivative(d̄::T, i::Integer, N::Integer) where {T <: Number}
     return quote
         $(Expr(:meta, :inline))
         Tangent{TaylorScalar}(
-            ; value = ($(zeros(T, i - 1)...), d̄, $(zeros(T, N - i)))
-        )
+                              ; value = ($(zeros(T, i - 1)...), d̄, $(zeros(T, N - i))))
     end
 end
 
-function rrule(::typeof(extract_derivative), t::NTuple{N, T}, i::Integer) where {N, T <: Number}
+function rrule(::typeof(extract_derivative), t::NTuple{N, T},
+               i::Integer) where {N, T <: Number}
     extract_derivative_pullback(d̄) = NoTangent(), wrap_derivative(d̄, i, N), NoTangent()
     return extract_derivative(t, i), extract_derivative_pullback
 end
