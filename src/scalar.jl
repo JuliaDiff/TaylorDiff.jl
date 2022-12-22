@@ -1,5 +1,3 @@
-
-using Zygote: @adjoint
 import Base: zero, one, convert, adjoint, promote_rule
 
 export TaylorScalar
@@ -52,8 +50,9 @@ end
         TaylorScalar((value(t)..., $(zeros(T, N - M)...)))
     end
 end
+
 @inline value(t::TaylorScalar) = t.value
-@inline Base.@propagate_inbounds getorder(t::TaylorScalar, order::Int) = t.value[order + 1]
+@inline extract_derivative(t::TaylorScalar, i::Integer) = t.value[i]
 
 @generated function zero(::Type{TaylorScalar{T, N}}) where {T, N}
     quote
@@ -93,10 +92,4 @@ end
 @inline function convert(::Type{TaylorScalar{T, N}},
                          t::TaylorScalar{S, N}) where {T <: Number, S <: Number, N}
     TaylorScalar{T, N}(map(x -> convert(T, x), value(t)))
-end
-
-@adjoint value(t::TaylorScalar) = value(t), v̄ -> (TaylorScalar(v̄),)
-@adjoint TaylorScalar(v) = TaylorScalar(v), t̄ -> (t̄.value,)
-@adjoint function getindex(t::NTuple{N, T}, i::Int) where {N, T <: Number}
-    getindex(t, i), v̄ -> (tuple(zeros(T, i - 1)..., v̄, zeros(T, N - i)...), nothing)
 end

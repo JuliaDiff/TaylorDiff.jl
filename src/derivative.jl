@@ -25,11 +25,11 @@ end
 
 @inline function derivative(f::F, x::T, ::Val{N}) where {F, T <: Number, N}
     t = TaylorScalar{T, N}(x)
-    return getindex(value(f(t)), N)
+    return extract_derivative(f(t), N)
 end
 
 @inline function derivative(f::F, x::Vector{T}, l::Vector{T},
                             ::Val{N}) where {F, T <: Number, N}
     t = map(TaylorScalar{T, N}, x, l)
-    return getindex(value(f(t)), N)
+    return extract_derivative(f(t), N)
 end
