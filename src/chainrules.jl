@@ -1,25 +1,31 @@
-import ChainRulesCore: rrule
+import ChainRulesCore: rrule, RuleConfig
+ChainRulesCore.debug_mode() = true
 
-function rrule(::Type{TaylorScalar}, v)
-    taylor_scalar_pullback(t̄) = NoTangent(), t̄.value
+@opt_out rrule(::Any, ::TaylorScalar)
+@opt_out rrule(::Any, ::TaylorScalar, ::TaylorScalar)
+@opt_out rrule(::Any, ::TaylorScalar, ::Any)
+@opt_out rrule(::typeof(*), ::TaylorScalar, ::TaylorScalar)
+@opt_out rrule(::typeof(^), ::TaylorScalar, ::Any)
+@opt_out rrule(::typeof(Base.literal_pow), ::typeof(^), x::TaylorScalar, ::Val{p}) where {p}
+@opt_out rrule(::RuleConfig, ::typeof(Base.literal_pow), ::typeof(^), x::TaylorScalar,
+               ::Val{p}) where {p}
+
+function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T <: Number}
+    taylor_scalar_pullback(t̄) = NoTangent(), value(t̄)
     return TaylorScalar(v), taylor_scalar_pullback
 end
 
 function rrule(::typeof(value), t::TaylorScalar)
-    value_pullback(v̄) = NoTangent(), Tangent{TaylorScalar}(; value = v̄)
+    value_pullback(v̄::NTuple) = NoTangent(), TaylorScalar(v̄)
+    # for structural tangent, convert to tuple
+    value_pullback(v̄) = NoTangent(), TaylorScalar(Tuple(v̄))
     return value(t), value_pullback
 end
 
-@generated function wrap_derivative(d̄::T, i::Integer, N::Integer) where {T <: Number}
-    return quote
-        $(Expr(:meta, :inline))
-        Tangent{TaylorScalar}(
-                              ; value = ($(zeros(T, i - 1)...), d̄, $(zeros(T, N - i))))
-    end
-end
-
-function rrule(::typeof(extract_derivative), t::NTuple{N, T},
+function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
                i::Integer) where {N, T <: Number}
-    extract_derivative_pullback(d̄) = NoTangent(), wrap_derivative(d̄, i, N), NoTangent()
+    function extract_derivative_pullback(d̄)
+        NoTangent(), TaylorScalar((zeros(T, i - 1)..., d̄, zeros(T, N - i)...)), NoTangent()
+    end
     return extract_derivative(t, i), extract_derivative_pullback
 end
