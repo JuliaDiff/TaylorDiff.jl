@@ -2,8 +2,8 @@
 import Base: abs, abs2
 import Base: exp, exp2, exp10, expm1, log, log2, log10, log1p, inv, sqrt, cbrt
 import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch
-import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, asech, acsch,
-             sinc, cosc
+import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, asech, acsch
+import Base: sinc, cosc
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
 import Base: hypot, max, min
 
@@ -105,15 +105,6 @@ end
 
 # Binary
 
-for op in [:+, :*, :-, :/]
-    @eval @inline function $op(x::S, y::TaylorScalar{T, N}) where {S <: Number, T, N}
-        $op(promote(x, y)...)
-    end
-    @eval @inline function $op(x::TaylorScalar{T, N}, y::S) where {S <: Number, T, N}
-        $op(promote(x, y)...)
-    end
-end
-
 for op in [:(==), :(<), :(<=)]
     @eval @inline function $op(a::S, b::TaylorScalar{T, N}) where {S <: Number, T, N}
         $op(a, value(b)[1])
@@ -158,6 +149,25 @@ for op in [:>, :<, :(==), :(>=), :(<=)]
 end
 
 @generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Number, T, N}
+    ex = quote
+        v = value(t)
+        v1 = ^(v[1], n)
+    end
+    for i in 2:N
+        ex = quote
+            $ex
+            $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
+                                        $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
+                                       v[$i + 1 - $j])
+                                     for j in 1:(i - 1)]...)) / v[1]
+        end
+    end
+    ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
+    return :(@inbounds $ex)
+end
+
+@generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Integer, T, N}
+    # TODO: optimize for small powers
     ex = quote
         v = value(t)
         v1 = ^(v[1], n)
