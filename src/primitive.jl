@@ -75,7 +75,7 @@ end
 
 for op in [:>, :<, :(==), :(>=), :(<=)]
     @eval @inline $op(a::Number, b::TaylorScalar) = $op(a, value(b)[1])
-    @eval @inline $op(a::TaylorScalar, b::Number) = $op(a, value(b)[1])
+    @eval @inline $op(a::TaylorScalar, b::Number) = $op(value(a)[1], b)
     @eval @inline $op(a::TaylorScalar, b::TaylorScalar) = $op(value(a)[1], value(b)[1])
 end
 
@@ -158,7 +158,7 @@ end
     end
 end
 
-raise(::T, df::S, t::TaylorScalar{T}) where {S <: Number, T <: Number} = df * t
+raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Real, T <: Number, N} = df * t
 
 @generated function raiseinv(f::T, df::TaylorScalar{T, M},
                              t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
