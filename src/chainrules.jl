@@ -1,5 +1,4 @@
 import ChainRulesCore: rrule, RuleConfig
-ChainRulesCore.debug_mode() = true
 
 @opt_out rrule(::Any, ::TaylorScalar)
 @opt_out rrule(::Any, ::TaylorScalar, ::TaylorScalar)

@@ -7,12 +7,15 @@ using FiniteDifferences
     end
     for f in (+, -, <, <=, >, >=, ==), order in (2,)
         @test derivative(x -> f(x, another_number), some_number, order) ≈ 0.0
+        @test derivative(x -> f(another_number, x), some_number, order) ≈ 0.0
+        @test derivative(x -> f(x, x), some_number, order) ≈ 0.0
     end
 end
 
 @testset "Unary functions" begin
     some_number = 3.7
-    for f in (exp, expm1, exp2, exp10, sin, cos, sqrt, cbrt, inv), order in (1, 4)
+    for f in (x -> exp(x^2), expm1, exp2, exp10, x -> sin(x^2), x -> cos(x^2), sqrt, cbrt,
+              inv), order in (1, 4)
         fdm = central_fdm(12, order)
         @test derivative(f, some_number, order)≈fdm(f, some_number) rtol=1e-6
     end
