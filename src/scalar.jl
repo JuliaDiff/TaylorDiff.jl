@@ -26,14 +26,14 @@ Construct a seed with unit first-order perturbation.
 @generated function TaylorScalar{T, N}(x::T) where {T <: Number, N}
     return quote
         $(Expr(:meta, :inline))
-        TaylorScalar((x, one(x), $(zeros(T, N - 2)...)))
+        TaylorScalar((x, $(zeros(T, N - 1)...)))
     end
 end
 
 """
     TaylorScalar{T, N}(x::T, d::T) where {T <: Number, N}
 
-Construct a seed with arbitrary first-order perturbation.
+Construct a seed with first-order perturbation.
 """
 @generated function TaylorScalar{T, N}(x::T, d::T) where {T <: Number, N}
     return quote
@@ -73,25 +73,12 @@ end
 
 adjoint(t::TaylorScalar) = t
 conj(t::TaylorScalar) = t
+
 function promote_rule(::Type{TaylorScalar{T, N}},
                       ::Type{S}) where {T <: Number, S <: Number, N}
     TaylorScalar{promote_type(T, S), N}
 end
-@generated function convert(::Type{TaylorScalar{T, N}}, t::T) where {T <: Number, N}
-    quote
-        $(Expr(:meta, :inline))
-        TaylorScalar(t, $(zeros(T, N - 1)...))
-    end
-end
-@inline function convert(::Type{TaylorScalar{T, N}},
-                         t::S) where {T <: Number, S <: Number, N}
-    convert(TaylorScalar{T, N}, convert(T, t))
-end
-@inline function convert(::Type{TaylorScalar{T, N}},
-                         t::TaylorScalar{T, N}) where {T <: Number, N}
-    t
-end
-@inline function convert(::Type{TaylorScalar{T, N}},
-                         t::TaylorScalar{S, N}) where {T <: Number, S <: Number, N}
-    TaylorScalar{T, N}(map(x -> convert(T, x), value(t)))
+function promote_rule(::Type{TaylorScalar{T, N}},
+                      ::Type{TaylorScalar{S, N}}) where {T <: Number, S <: Number, N}
+    TaylorScalar{promote_type(T, S), N}
 end
