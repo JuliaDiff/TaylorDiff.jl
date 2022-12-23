@@ -55,19 +55,8 @@ end
 @inline value(t::TaylorScalar) = t.value
 @inline extract_derivative(t::TaylorScalar, i::Integer) = t.value[i]
 
-@generated function zero(::Type{TaylorScalar{T, N}}) where {T, N}
-    quote
-        $(Expr(:meta, :inline))
-        TaylorScalar($(zeros(T, N)...))
-    end
-end
-@generated function one(::Type{TaylorScalar{T, N}}) where {T, N}
-    quote
-        $(Expr(:meta, :inline))
-        TaylorScalar(one(T), $(zeros(T, N - 1)...))
-    end
-end
-
+@inline zero(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(zero(T))
+@inline one(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(one(T))
 @inline zero(::TaylorScalar{T, N}) where {T, N} = zero(TaylorScalar{T, N})
 @inline one(::TaylorScalar{T, N}) where {T, N} = one(TaylorScalar{T, N})
 
