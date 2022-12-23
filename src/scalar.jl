@@ -54,6 +54,7 @@ end
 
 @inline value(t::TaylorScalar) = t.value
 @inline extract_derivative(t::TaylorScalar, i::Integer) = t.value[i]
+@inline extract_derivative(r, i::Integer) = false
 
 @inline zero(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(zero(T))
 @inline one(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(one(T))
