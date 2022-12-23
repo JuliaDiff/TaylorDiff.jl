@@ -19,26 +19,26 @@ end
 @inline TaylorScalar(xs::Vararg{T, N}) where {T <: Number, N} = TaylorScalar(xs)
 
 """
-    TaylorScalar{T, N}(x::T) where {T <: Number, N}
+    TaylorScalar{T, N}(x::S) where {S <: Number, T <: Number, N}
 
-Construct a seed with unit first-order perturbation.
+Construct a Taylor polynomial with zeroth order coefficient.
 """
-@generated function TaylorScalar{T, N}(x::T) where {T <: Number, N}
+@generated function TaylorScalar{T, N}(x::S) where {S <: Number, T <: Number, N}
     return quote
         $(Expr(:meta, :inline))
-        TaylorScalar((x, $(zeros(T, N - 1)...)))
+        TaylorScalar((T(x), $(zeros(T, N - 1)...)))
     end
 end
 
 """
-    TaylorScalar{T, N}(x::T, d::T) where {T <: Number, N}
+    TaylorScalar{T, N}(x::S, d::S) where {S <: Number, T <: Number, N}
 
-Construct a seed with first-order perturbation.
+Construct a Taylor polynomial with zeroth and first order coefficient, acting as a seed.
 """
-@generated function TaylorScalar{T, N}(x::T, d::T) where {T <: Number, N}
+@generated function TaylorScalar{T, N}(x::S, d::S) where {S <: Number, T <: Number, N}
     return quote
         $(Expr(:meta, :inline))
-        TaylorScalar((x, d, $(zeros(T, N - 2)...)))
+        TaylorScalar((T(x), T(d), $(zeros(T, N - 2)...)))
     end
 end
 
