@@ -1,24 +1,22 @@
+using FiniteDifferences
 
 @testset "Unary functions" begin
-    @test derivative(exp, 1.0, 10) ≈ exp(1.0)
-    @test derivative(expm1, 1.0, 10) ≈ exp(1.0)
-    @test derivative(log, 10.0, 1) ≈ 0.1
-    @test derivative(log, 10.0, 2) ≈ -0.01
-    @test derivative(log, 10.0, 3) ≈ 0.002
-    @test derivative(log1p, 9.0, 1) ≈ 0.1
-    @test derivative(log1p, 9.0, 2) ≈ -0.01
-    @test derivative(log1p, 9.0, 3) ≈ 0.002
-    @test derivative(sin, 1.0, 1) ≈ cos(1.0)
-    @test derivative(sin, 1.0, 2) ≈ -sin(1.0)
-    @test derivative(sin, 1.0, 3) ≈ -cos(1.0)
-    @test derivative(sin, 1.0, 4) ≈ sin(1.0)
-    @test derivative(cos, 1.0, 1) ≈ -sin(1.0)
-    @test derivative(cos, 1.0, 2) ≈ -cos(1.0)
-    @test derivative(cos, 1.0, 3) ≈ sin(1.0)
-    @test derivative(cos, 1.0, 4) ≈ cos(1.0)
-    @test derivative(asin, 0.5, 1) ≈ 2 / √3
-    @test derivative(acos, 0.5, 1) ≈ -2 / √3
-    @test derivative(atan, 1.0, 1) ≈ 0.5
+    some_number = 3.7
+    for f in (exp, expm1, exp2, exp10, sin, cos, sqrt, cbrt, inv), order in (2, 4)
+        fdm = central_fdm(12, order)
+        @test derivative(f, some_number, order) ≈ fdm(f, some_number) rtol=1e-6
+    end
 end
 
-@testset "Binary functions" begin @test derivative(x -> x^3, 3.0, 2) ≈ 18.0 end
+@testset "Binary functions" begin
+    some_number, another_number = 1.9, 2.6
+    for f in (*, /), order in (2, 4)
+        fdm = central_fdm(12, order)
+        closure = x -> exp(f(x, another_number))
+        @test derivative(closure, some_number, order) ≈ fdm(closure, some_number) rtol=1e-6
+    end
+    for f in (x -> x^7, x -> x^another_number), order in (2, 4)
+        fdm = central_fdm(12, order)
+        @test derivative(f, some_number, order) ≈ fdm(f, some_number) rtol=1e-6
+    end
+end

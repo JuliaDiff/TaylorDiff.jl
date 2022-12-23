@@ -9,6 +9,8 @@ import Base: hypot, max, min
 
 # Unary
 
+## Delegated
+
 @inline +(t::TaylorScalar) = t
 @inline -(t::TaylorScalar) = -1 * t
 @inline sqrt(t::TaylorScalar) = t^0.5
@@ -19,7 +21,7 @@ for func in (:exp, :expm1, :exp2, :exp10)
     @eval @generated function $func(t::TaylorScalar{T, N}) where {T, N}
         ex = quote
             v = value(t)
-            v1 = exp(v[1])
+            v1 = $($(QuoteNode(func)) == :expm1 ? :(exp(v[1])) : :($$func(v[1])))
         end
         for i in 2:N
             ex = quote
@@ -36,38 +38,6 @@ for func in (:exp, :expm1, :exp2, :exp10)
         end
         if $(QuoteNode(func)) == :expm1
             ex = :($ex; v1 = expm1(v[1]))
-        end
-        ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
-        return :(@inbounds $ex)
-    end
-end
-
-for func in (:log, :log1p, :log2, :log10)
-    @eval @generated function $func(t::TaylorScalar{T, N}) where {T, N}
-        ex = quote
-            v = value(t)
-            v1 = $$func(v[1])
-        end
-        if $(QuoteNode(func)) == :log1p
-            ex = :($ex; den = v[1] + 1)
-        else
-            ex = :($ex; den = v[1])
-        end
-        if $(QuoteNode(func)) == :log2
-            ex = :($ex; v2 = v[2] / den / $(log(2)))
-        elseif $(QuoteNode(func)) == :log10
-            ex = :($ex; v2 = v[2] / den / $(log(10)))
-        else
-            ex = :($ex; v2 = v[2] / den)
-        end
-        for i in 3:N
-            ex = quote
-                $ex
-                $(Symbol('v', i)) = (v[$i] -
-                                     +($([:($(binomial(i - 2, j - 2)) * $(Symbol('v', j)) *
-                                            v[$i + 1 - $j])
-                                          for j in 2:(i - 1)]...))) / den
-            end
         end
         ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
         return :(@inbounds $ex)
@@ -105,13 +75,10 @@ end
 
 # Binary
 
-for op in [:(==), :(<), :(<=)]
-    @eval @inline function $op(a::S, b::TaylorScalar{T, N}) where {S <: Number, T, N}
-        $op(a, value(b)[1])
-    end
-    @eval @inline function $op(a::TaylorScalar{T, N}, b::S) where {S <: Number, T, N}
-        $op(value(a)[1], b)
-    end
+for op in [:>, :<, :(==), :(>=), :(<=)]
+    @eval @inline $op(a::Number, b::TaylorScalar) = $op(a, value(b)[1])
+    @eval @inline $op(a::TaylorScalar, b::Number) = $op(a, value(b)[1])
+    @eval @inline $op(a::TaylorScalar, b::TaylorScalar) = $op(value(a)[1], value(b)[1])
 end
 
 @inline +(a::TaylorScalar, b::TaylorScalar) = TaylorScalar(map(+, value(a), value(b)))
@@ -142,10 +109,6 @@ end
     end
     ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
     return :(@inbounds $ex)
-end
-
-for op in [:>, :<, :(==), :(>=), :(<=)]
-    @eval $op(a::TaylorScalar, b::TaylorScalar) = $op(value(a)[1], value(b)[1])
 end
 
 @generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Number, T, N}
@@ -207,7 +170,7 @@ end
         ex = quote
             $ex
             $(Symbol('v', i)) = (vt[$i + 1] -
-                                 +($([:($(binomial(i - 1, j)) * $(Symbol('v', j)) *
+                                 +($([:($(binomial(i - 1, j - 1)) * $(Symbol('v', j)) *
                                         vdf[$i + 1 - $j])
                                       for j in 1:(i - 1)]...))) / vdf[1]
         end
