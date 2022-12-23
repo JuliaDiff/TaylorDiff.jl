@@ -68,7 +68,3 @@ function promote_rule(::Type{TaylorScalar{T, N}},
                       ::Type{S}) where {T <: Number, S <: Number, N}
     TaylorScalar{promote_type(T, S), N}
 end
-function promote_rule(::Type{TaylorScalar{T, N}},
-                      ::Type{TaylorScalar{S, N}}) where {T <: Number, S <: Number, N}
-    TaylorScalar{promote_type(T, S), N}
-end

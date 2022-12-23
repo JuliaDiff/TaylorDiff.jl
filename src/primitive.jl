@@ -50,15 +50,14 @@ for func in (:sin, :cos)
             c1 = cos(v[1])
         end
         for i in 2:N
-            ex = quote
-                $ex
-                $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) * $(Symbol('c', j)) *
-                                           v[$i + 1 - $j])
-                                         for j in 1:(i - 1)]...))
-                $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) * $(Symbol('s', j)) *
-                                           v[$i + 1 - $j])
-                                         for j in 1:(i - 1)]...))
-            end
+            ex = :($ex;
+                   $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) *
+                                              $(Symbol('c', j)) *
+                                              v[$i + 1 - $j]) for j in 1:(i - 1)]...)))
+            ex = :($ex;
+                   $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) *
+                                              $(Symbol('s', j)) *
+                                              v[$i + 1 - $j]) for j in 1:(i - 1)]...)))
         end
         if $(QuoteNode(func)) == :sin
             ex = :($ex; TaylorScalar($([Symbol('s', i) for i in 1:N]...)))
