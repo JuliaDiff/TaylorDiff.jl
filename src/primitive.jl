@@ -11,8 +11,6 @@ import Base: hypot, max, min
 
 ## Delegated
 
-@inline +(t::TaylorScalar) = t
-@inline -(t::TaylorScalar) = -1 * t
 @inline sqrt(t::TaylorScalar) = t^0.5
 @inline cbrt(t::TaylorScalar) = ^(t, 1 / 3)
 @inline inv(t::TaylorScalar) = 1 / t
@@ -159,6 +157,8 @@ end
                                   for i in 1:M]...))
     end
 end
+
+raise(::T, df::S, t::TaylorScalar{T}) where {S <: Number, T <: Number} = df * t
 
 @generated function raiseinv(f::T, df::TaylorScalar{T, M},
                              t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
