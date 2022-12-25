@@ -9,5 +9,8 @@
 			]
 		}
 	},
-	"postCreateCommand": "julia -e 'using Pkg; Pkg.add([\"Revise\", \"TestEnv\"])'"
+	"postCreateCommand": "julia -e 'using Pkg; Pkg.add([\"Revise\", \"TestEnv\"])'",
+	"hostRequirements": {
+		"cpus": 4
+	}
 }
