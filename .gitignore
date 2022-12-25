@@ -4,3 +4,4 @@ Manifest.toml
 *.jl.cov
 *.jl.mem
 /docs/build/
+JuliaSysimage.*
