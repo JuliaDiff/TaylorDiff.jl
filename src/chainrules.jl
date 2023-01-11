@@ -1,9 +1,33 @@
 import ChainRulesCore: rrule, RuleConfig
+using ZygoteRules: @adjoint
 
-@opt_out rrule(::Any, ::TaylorScalar, ::TaylorScalar)
-@opt_out rrule(::Any, ::TaylorScalar, ::Any)
-@opt_out rrule(::typeof(*), ::TaylorScalar, ::TaylorScalar)
-@opt_out rrule(::typeof(^), ::TaylorScalar, ::Any)
+contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N} = mapreduce(*, +, value(a), value(b))
+
+NONLINEAR_UNARY_FUNCTIONS = Function[
+    exp, exp2, exp10, expm1,
+    log, log2, log10, log1p,
+    sin, cos, tan, cot, sec, csc,
+    asin, acos, atan, acot, asec, acsc,
+    sinh, cosh, tanh, coth, sech, csch,
+    asinh, acosh, atanh, acoth, asech, acsch,
+]
+
+for func in NONLINEAR_UNARY_FUNCTIONS
+    @eval @opt_out rrule(::typeof($func), ::TaylorScalar)
+end
+
+NONLINEAR_BINARY_FUNCTIONS = Function[
+    *, /, ^
+]
+
+for func in NONLINEAR_BINARY_FUNCTIONS
+    @eval @opt_out rrule(::typeof($func), ::TaylorScalar, ::TaylorScalar)
+    @eval @opt_out rrule(::typeof($func), ::TaylorScalar, ::Number)
+    @eval @opt_out rrule(::typeof($func), ::Number, ::TaylorScalar)
+end
+
+# Other special cases
+
 @opt_out rrule(::typeof(Base.literal_pow), ::typeof(^), x::TaylorScalar, ::Val{p}) where {p}
 @opt_out rrule(::RuleConfig, ::typeof(Base.literal_pow), ::typeof(^), x::TaylorScalar,
                ::Val{p}) where {p}
@@ -29,7 +53,7 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
 end
 
 function rrule(::typeof(*), A::Matrix{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
-    gemv_pullback(x̄) = NoTangent(), map(primal, x̄) * transpose(map(primal, t)), transpose(A) * x̄
+    gemv_pullback(x̄) = NoTangent(), contract.(x̄, transpose(t)), transpose(A) * x̄
     return A * t, gemv_pullback
 end
 
@@ -42,3 +66,7 @@ function rrule(::typeof(+), t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {
     vadd_pullback(x̄) = NoTangent(), x̄, map(primal, x̄)
     return t + v, vadd_pullback
 end
+
+@adjoint +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number} = t + v, x̄ -> (x̄, map(primal, x̄))
+
+@adjoint +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number} = v + t, x̄ -> (map(primal, x̄), x̄)
