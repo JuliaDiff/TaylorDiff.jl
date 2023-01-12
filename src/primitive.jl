@@ -14,6 +14,7 @@ import Base: hypot, max, min
 @inline sqrt(t::TaylorScalar) = t^0.5
 @inline cbrt(t::TaylorScalar) = ^(t, 1 / 3)
 @inline inv(t::TaylorScalar) = 1 / t
+@inline abs(t::TaylorScalar) = primal(t) >= 0 ? t : -t
 
 for func in (:exp, :expm1, :exp2, :exp10)
     @eval @generated function $func(t::TaylorScalar{T, N}) where {T, N}

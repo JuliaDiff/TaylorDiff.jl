@@ -1,4 +1,4 @@
-import ChainRulesCore: rrule, RuleConfig
+import ChainRulesCore: rrule, RuleConfig, ProjectTo
 using ZygoteRules: @adjoint
 
 contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N} = mapreduce(*, +, value(a), value(b))
@@ -6,6 +6,7 @@ contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N} = mapredu
 NONLINEAR_UNARY_FUNCTIONS = Function[
     exp, exp2, exp10, expm1,
     log, log2, log10, log1p,
+    inv, sqrt, cbrt,
     sin, cos, tan, cot, sec, csc,
     asin, acos, atan, acot, asec, acsc,
     sinh, cosh, tanh, coth, sech, csch,
@@ -52,8 +53,9 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
     return extract_derivative(t, i), extract_derivative_pullback
 end
 
-function rrule(::typeof(*), A::Matrix{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
-    gemv_pullback(x̄) = NoTangent(), contract.(x̄, transpose(t)), transpose(A) * x̄
+function rrule(::typeof(*), A::Matrix{S}, t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
+    project_A = ProjectTo(A)
+    gemv_pullback(x̄) = NoTangent(), project_A(contract.(x̄, transpose(t))), transpose(A) * x̄
     return A * t, gemv_pullback
 end
 
@@ -70,3 +72,7 @@ end
 @adjoint +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number} = t + v, x̄ -> (x̄, map(primal, x̄))
 
 @adjoint +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number} = v + t, x̄ -> (map(primal, x̄), x̄)
+
+(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
+
+(project::ProjectTo{S})(dx::TaylorScalar{T, N}) where {N, T <: Number, S <: Real} = project(primal(dx))
