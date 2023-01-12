@@ -1,5 +1,4 @@
 using Flux
-using ChainRulesCore: @opt_out
 using TaylorDiff
 using Zygote
 using Plots
@@ -13,15 +12,14 @@ model = Chain(
     Dense(hidden => 1),
     first
 )
-trial(model, x) = model(x)
-
-ε = cbrt(eps(Float32))
-ε₁ = [ε, 0]
-ε₂ = [0, ε]
+trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x)
 
 M = 100
 data = [rand(input) for _ in 1:M]
 function loss_by_finitediff(model, x)
+    ε = cbrt(eps(Float32))
+    ε₁ = [ε, 0]
+    ε₂ = [0, ε]
     error = (trial(model, x + ε₁) + trial(model, x - ε₁) + trial(model, x + ε₂) +
              trial(model, x - ε₂) - 4 * trial(model, x)) /
             ε^2 + sin(π * x[1]) * sin(π * x[2])
