@@ -1,26 +1,51 @@
-using TaylorDiff, Zygote
+using Flux
+using ChainRulesCore: @opt_out
+using TaylorDiff
+using Zygote
+using Plots
 
 const input = 2
 const hidden = 16
 
-struct PINN
-    W₁
-    b₁
-    W₂
-    b₂
+model = Chain(
+    Dense(input => hidden, sin),
+    Dense(hidden => hidden, sin),
+    Dense(hidden => 1),
+    first
+)
+trial(model, x) = model(x)
+
+ε = cbrt(eps(Float32))
+ε₁ = [ε, 0]
+ε₂ = [0, ε]
+
+M = 100
+data = [rand(input) for _ in 1:M]
+function loss_by_finitediff(model, x)
+    error = (trial(model, x + ε₁) + trial(model, x - ε₁) + trial(model, x + ε₂) +
+             trial(model, x - ε₂) - 4 * trial(model, x)) /
+            ε^2 + sin(π * x[1]) * sin(π * x[2])
+    abs2(error)
+end
+function loss_by_taylordiff(model, x)
+    f(x) = trial(model, x)
+    error = derivative(f, x, [1., 0.], 2) + derivative(f, x, [0., 1.], 2) + sin(π * x[1]) * sin(π * x[2])
+    abs2(error)
 end
 
-(pinn::PINN)(x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * first(pinn.W₂ * exp.(pinn.W₁ * x + pinn.b₁) + pinn.b₂)
+opt = Flux.setup(Adam(), model)
 
-dataset = [rand(input) for i in 1:10]
-function loss(pinn)
-    out = 0.0
-    for x in dataset
-        out += derivative(pinn, x, [1., 0.], Val(2))
-    end
-    out
+allloss(model, loss) = sum([loss(model, x) for x in data])
+for epoch in 1:1000
+    Flux.train!(loss_by_taylordiff, model, data, opt)
 end
 
-myPINN = PINN(rand(hidden, input), rand(hidden), rand(1, hidden), rand(1))
+grid = 0:0.01:1
+solution(x, y) = (sin(π * x) * sin(π * y)) / (2π^2)
+u = [trial(model, [x, y]) for x in grid, y in grid]
+utrue = [solution(x, y) for x in grid, y in grid]
+diff_u = abs.(u .- utrue)
 
-gradient(loss, myPINN)
+surface(u)
+surface(utrue)
+surface(diff_u)

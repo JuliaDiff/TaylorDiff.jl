@@ -1,11 +1,11 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 TaylorDiff = "b36ab563-344f-407b-a36a-4f200bebf99c"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
