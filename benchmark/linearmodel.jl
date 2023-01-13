@@ -12,7 +12,7 @@ end
 data = rand(2)
 
 function loss(model)
-    derivative(model, data, [1., 0.], Val(2))
+    derivative(model, data, [1.0, 0.0], Val(2))
 end
 
 model = LinearModel(rand(1, 2))
