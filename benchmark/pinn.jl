@@ -15,7 +15,7 @@ model = Chain(
 trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x)
 
 M = 100
-data = [rand(input) for _ in 1:M]
+data = [rand(Float32, input) for _ in 1:M]
 function loss_by_finitediff(model, x)
     ε = cbrt(eps(Float32))
     ε₁ = [ε, 0]
@@ -27,7 +27,7 @@ function loss_by_finitediff(model, x)
 end
 function loss_by_taylordiff(model, x)
     f(x) = trial(model, x)
-    error = derivative(f, x, [1., 0.], 2) + derivative(f, x, [0., 1.], 2) + sin(π * x[1]) * sin(π * x[2])
+    error = derivative(f, x, Float32[1, 0], 2) + derivative(f, x, Float32[0, 1], 2) + sin(π * x[1]) * sin(π * x[2])
     abs2(error)
 end
 
