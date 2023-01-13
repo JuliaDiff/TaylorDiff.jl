@@ -38,34 +38,35 @@ function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T <: Numbe
     return TaylorScalar(v), taylor_scalar_pullback
 end
 
-function rrule(::typeof(value), t::TaylorScalar)
-    value_pullback(v̄::NTuple) = NoTangent(), TaylorScalar(v̄)
+function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
+    value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(v̄)
+    value_pullback(v̄::Tuple) = NoTangent(), TaylorScalar(map(x -> convert(T, x), v̄))
     # for structural tangent, convert to tuple
-    value_pullback(v̄) = NoTangent(), TaylorScalar(Tuple(v̄))
+    value_pullback(v̄) = NoTangent(), TaylorScalar(map(x -> convert(T, x), Tuple(v̄)))
     return value(t), value_pullback
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
                i::Integer) where {N, T <: Number}
     function extract_derivative_pullback(d̄)
-        NoTangent(), TaylorScalar((zeros(T, i - 1)..., d̄, zeros(T, N - i)...)), NoTangent()
+        NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))), NoTangent()
     end
     return extract_derivative(t, i), extract_derivative_pullback
 end
 
 function rrule(::typeof(*), A::Matrix{S}, t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
     project_A = ProjectTo(A)
-    gemv_pullback(x̄) = NoTangent(), project_A(contract.(x̄, transpose(t))), transpose(A) * x̄
+    gemv_pullback(x̄) = NoTangent(), @thunk(project_A(contract.(x̄, transpose(t)))), @thunk(transpose(A) * x̄)
     return A * t, gemv_pullback
 end
 
 function rrule(::typeof(+), v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
-    vadd_pullback(x̄) = NoTangent(), map(primal, x̄), x̄
+    vadd_pullback(x̄) = NoTangent(), ProjectTo(v)(x̄), x̄
     return v + t, vadd_pullback
 end
 
 function rrule(::typeof(+), t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number}
-    vadd_pullback(x̄) = NoTangent(), x̄, map(primal, x̄)
+    vadd_pullback(x̄) = NoTangent(), x̄, ProjectTo(v)(x̄)
     return t + v, vadd_pullback
 end
 
