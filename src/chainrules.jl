@@ -1,25 +1,23 @@
 import ChainRulesCore: rrule, RuleConfig, ProjectTo
 using ZygoteRules: @adjoint
 
-contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N} = mapreduce(*, +, value(a), value(b))
+function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
+    mapreduce(*, +, value(a), value(b))
+end
 
-NONLINEAR_UNARY_FUNCTIONS = Function[
-    exp, exp2, exp10, expm1,
-    log, log2, log10, log1p,
-    inv, sqrt, cbrt,
-    sin, cos, tan, cot, sec, csc,
-    asin, acos, atan, acot, asec, acsc,
-    sinh, cosh, tanh, coth, sech, csch,
-    asinh, acosh, atanh, acoth, asech, acsch,
-]
+NONLINEAR_UNARY_FUNCTIONS = Function[exp, exp2, exp10, expm1,
+                                     log, log2, log10, log1p,
+                                     inv, sqrt, cbrt,
+                                     sin, cos, tan, cot, sec, csc,
+                                     asin, acos, atan, acot, asec, acsc,
+                                     sinh, cosh, tanh, coth, sech, csch,
+                                     asinh, acosh, atanh, acoth, asech, acsch]
 
 for func in NONLINEAR_UNARY_FUNCTIONS
     @eval @opt_out rrule(::typeof($func), ::TaylorScalar)
 end
 
-NONLINEAR_BINARY_FUNCTIONS = Function[
-    *, /, ^
-]
+NONLINEAR_BINARY_FUNCTIONS = Function[*, /, ^]
 
 for func in NONLINEAR_BINARY_FUNCTIONS
     @eval @opt_out rrule(::typeof($func), ::TaylorScalar, ::TaylorScalar)
@@ -49,31 +47,43 @@ end
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
                i::Integer) where {N, T <: Number}
     function extract_derivative_pullback(d̄)
-        NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))), NoTangent()
+        NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
+        NoTangent()
     end
     return extract_derivative(t, i), extract_derivative_pullback
 end
 
-function rrule(::typeof(*), A::Matrix{S}, t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
+function rrule(::typeof(*), A::Matrix{S},
+               t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
     project_A = ProjectTo(A)
-    gemv_pullback(x̄) = NoTangent(), @thunk(project_A(contract.(x̄, transpose(t)))), @thunk(transpose(A) * x̄)
+    function gemv_pullback(x̄)
+        NoTangent(), @thunk(project_A(contract.(x̄, transpose(t)))), @thunk(transpose(A)*x̄)
+    end
     return A * t, gemv_pullback
 end
 
-function rrule(::typeof(+), v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
+function rrule(::typeof(+), v::Vector{T},
+               t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
     vadd_pullback(x̄) = NoTangent(), ProjectTo(v)(x̄), x̄
     return v + t, vadd_pullback
 end
 
-function rrule(::typeof(+), t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number}
+function rrule(::typeof(+), t::Vector{TaylorScalar{T, N}},
+               v::Vector{T}) where {N, T <: Number}
     vadd_pullback(x̄) = NoTangent(), x̄, ProjectTo(v)(x̄)
     return t + v, vadd_pullback
 end
 
-@adjoint +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number} = t + v, x̄ -> (x̄, map(primal, x̄))
+@adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number}
+    t + v, x̄ -> (x̄, map(primal, x̄))
+end
 
-@adjoint +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number} = v + t, x̄ -> (map(primal, x̄), x̄)
+@adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
+    v + t, x̄ -> (map(primal, x̄), x̄)
+end
 
 (project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
 
-(project::ProjectTo{S})(dx::TaylorScalar{T, N}) where {N, T <: Number, S <: Real} = project(primal(dx))
+function (project::ProjectTo{S})(dx::TaylorScalar{T, N}) where {N, T <: Number, S <: Real}
+    project(primal(dx))
+end
