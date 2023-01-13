@@ -38,7 +38,6 @@ end
 
 function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
     value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(v̄)
-    value_pullback(v̄::Tuple) = NoTangent(), TaylorScalar(map(x -> convert(T, x), v̄))
     # for structural tangent, convert to tuple
     value_pullback(v̄) = NoTangent(), TaylorScalar(map(x -> convert(T, x), Tuple(v̄)))
     return value(t), value_pullback
@@ -62,28 +61,14 @@ function rrule(::typeof(*), A::Matrix{S},
     return A * t, gemv_pullback
 end
 
-function rrule(::typeof(+), v::Vector{T},
-               t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
-    vadd_pullback(x̄) = NoTangent(), ProjectTo(v)(x̄), x̄
-    return v + t, vadd_pullback
-end
-
-function rrule(::typeof(+), t::Vector{TaylorScalar{T, N}},
-               v::Vector{T}) where {N, T <: Number}
-    vadd_pullback(x̄) = NoTangent(), x̄, ProjectTo(v)(x̄)
-    return t + v, vadd_pullback
-end
-
 @adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number}
-    t + v, x̄ -> (x̄, map(primal, x̄))
+    project_v = ProjectTo(v)
+    t + v, x̄ -> (x̄, project_v(x̄))
 end
 
 @adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
-    v + t, x̄ -> (map(primal, x̄), x̄)
+    project_v = ProjectTo(v)
+    v + t, x̄ -> (project_v(x̄), x̄)
 end
 
 (project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
-
-function (project::ProjectTo{S})(dx::TaylorScalar{T, N}) where {N, T <: Number, S <: Real}
-    project(primal(dx))
-end
