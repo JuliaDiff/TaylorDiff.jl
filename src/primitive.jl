@@ -15,6 +15,14 @@ import Base: hypot, max, min
 @inline cbrt(t::TaylorScalar) = ^(t, 1 / 3)
 @inline inv(t::TaylorScalar) = one(t) / t
 
+exp(t::TaylorScalar{T, 2}) where T = let v = value(t), e1 = exp(v[1])
+    TaylorScalar{T, 2}((e1, e1 * v[2]))
+end
+
+exp(t::TaylorScalar{T, 3}) where T = let v = value(t), e1 = exp(v[1])
+    TaylorScalar{T, 3}((e1, e1 * v[2], e1 * v[3] + e1 * v[2] * v[2]))
+end
+
 for func in (:exp, :expm1, :exp2, :exp10)
     @eval @generated function $func(t::TaylorScalar{T, N}) where {T, N}
         ex = quote
@@ -37,7 +45,7 @@ for func in (:exp, :expm1, :exp2, :exp10)
         if $(QuoteNode(func)) == :expm1
             ex = :($ex; v1 = expm1(v[1]))
         end
-        ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
+        ex = :($ex; TaylorScalar{T, N}(tuple($([Symbol('v', i) for i in 1:N]...))))
         return :(@inbounds $ex)
     end
 end
