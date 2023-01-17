@@ -6,11 +6,14 @@ using Plots
 const input = 2
 const hidden = 16
 
-model = Chain(Dense(input => hidden, sin),
-              Dense(hidden => hidden, sin),
-              Dense(hidden => 1),
-              first)
-trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x)
+# model = Chain(Dense(input => hidden, exp),
+#               Dense(hidden => hidden, exp),
+#               Dense(hidden => 1),
+#               first)
+# trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x)
+
+model = Chain(Dense(input => 1, exp), first)
+trial(model, x) = model(x)
 
 M = 100
 data = [rand(Float32, input) for _ in 1:M]
@@ -25,7 +28,7 @@ function loss_by_finitediff(model, x)
 end
 function loss_by_taylordiff(model, x)
     f(x) = trial(model, x)
-    error = derivative(f, x, Float32[1, 0], 2) + derivative(f, x, Float32[0, 1], 2) +
+    error = derivative(f, x, Float32[1, 0], Val(3)) + derivative(f, x, Float32[0, 1], Val(3)) +
             sin(π * x[1]) * sin(π * x[2])
     abs2(error)
 end
