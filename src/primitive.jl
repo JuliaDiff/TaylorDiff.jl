@@ -15,12 +15,15 @@ import Base: hypot, max, min
 @inline cbrt(t::TaylorScalar) = ^(t, 1 / 3)
 @inline inv(t::TaylorScalar) = one(t) / t
 
-exp(t::TaylorScalar{T, 2}) where T = let v = value(t), e1 = exp(v[1])
-    TaylorScalar{T, 2}((e1, e1 * v[2]))
-end
+exp(t::TaylorScalar{T, 2}) where {T} =
+    let v = value(t), e1 = exp(v[1])
+        TaylorScalar{T, 2}((e1, e1 * v[2]))
+    end
 
-exp(t::TaylorScalar{T, 3}) where T = let v = value(t), e1 = exp(v[1])
-    TaylorScalar{T, 3}((e1, e1 * v[2], e1 * v[3] + e1 * v[2] * v[2]))
+function exp(t::TaylorScalar{T, 3}) where {T}
+    let v = value(t), e1 = exp(v[1])
+        TaylorScalar{T, 3}((e1, e1 * v[2], e1 * v[3] + e1 * v[2] * v[2]))
+    end
 end
 
 for func in (:exp, :expm1, :exp2, :exp10)

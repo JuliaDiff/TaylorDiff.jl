@@ -39,7 +39,9 @@ end
 function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
     value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(v̄)
     # for structural tangent, convert to tuple
-    value_pullback(v̄::Tangent{P, NTuple{N, T}}) where P = NoTangent(), TaylorScalar{T, N}(backing(v̄))
+    function value_pullback(v̄::Tangent{P, NTuple{N, T}}) where {P}
+        NoTangent(), TaylorScalar{T, N}(backing(v̄))
+    end
     value_pullback(v̄) = NoTangent(), TaylorScalar{T, N}(map(x -> convert(T, x), Tuple(v̄)))
     return value(t), value_pullback
 end
