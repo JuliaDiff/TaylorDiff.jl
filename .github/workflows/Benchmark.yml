@@ -1,0 +1,38 @@
+name: Benchmark
+on:
+  push:
+    branches:
+      - main
+    tags: ['*']
+
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.8'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Install JuliaFormatter and format
+        run: |
+          julia -e 'using Pkg; Pkg.add(PackageSpec(name="PkgBenchmark"))'
+          julia --project=benchmark -e 'using Pkg; Pkg.instantiate()'
+      - run: |
+          julia --project=benchmark -e '
+            using PkgBenchmark, TaylorDiff
+            include("benchmark/utils.jl")
+            res = benchmarkpkg(TaylorDiff)
+            upload(res)'
