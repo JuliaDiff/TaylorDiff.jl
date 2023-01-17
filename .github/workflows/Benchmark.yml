@@ -26,11 +26,15 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
-      - name: Install JuliaFormatter and format
+      - name: Install PkgBenchmark and instantiate benchmark environment
         run: |
-          julia -e 'using Pkg; Pkg.add(PackageSpec(name="PkgBenchmark"))'
-          julia --project=benchmark -e 'using Pkg; Pkg.instantiate()'
-      - run: |
+          julia --project=benchmark -e '
+            using Pkg
+            Pkg.develop(path=".")
+            Pkg.instantiate()
+            Pkg.add(["PkgBenchmark", "HTTP", "JSON"])'
+      - name: Run benchmarks and upload to server
+        run: |
           julia --project=benchmark -e '
             using PkgBenchmark, TaylorDiff
             include("benchmark/utils.jl")

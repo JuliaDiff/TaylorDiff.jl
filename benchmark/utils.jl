@@ -24,5 +24,5 @@ function lower(te::TrialEstimate)
 end
 
 function upload(results::BenchmarkResults)
-    put("https://benchmark.tansongchen.com/data?repo=TaylorDiff.jl"; body=json(results))
+    put("https://benchmark.tansongchen.com/data?repo=TaylorDiff.jl"; body = json(results))
 end
