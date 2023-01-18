@@ -18,7 +18,6 @@ function benchmark()
     branch = headname(repo)
     config = BenchmarkConfig(id = branch)
     results = benchmarkpkg(TaylorDiff, config)
-    results.name = "TaylorDiff.jl"
     endpoint = "https://benchmark.tansongchen.com"
     put(endpoint; body = json(results))
 end
