@@ -25,13 +25,10 @@ function loss_by_taylordiff(model, x)
     abs2(error)
 end
 
-pinn = BenchmarkGroup("primal" => BenchmarkGroup("finitediff" => (@benchmarkable loss_by_finitediff($model,
-                                                                                                    $x)),
-                                                 "taylordiff" => (@benchmarkable loss_by_taylordiff($model,
-                                                                                                    $x))),
-                      "gradient" => BenchmarkGroup("finitediff" => (@benchmarkable gradient($loss_by_finitediff,
-                                                                                            $model,
-                                                                                            $x)),
-                                                   "taylordiff" => (@benchmarkable gradient($loss_by_taylordiff,
-                                                                                            $model,
-                                                                                            $x))))
+pinn_t = BenchmarkGroup("primal" => (@benchmarkable loss_by_taylordiff($model, $x)),
+                        "gradient" => (@benchmarkable gradient(loss_by_taylordiff, $model,
+                                                               $x)))
+pinn_f = BenchmarkGroup("primal" => (@benchmarkable loss_by_finitediff($model, $x)),
+                        "gradient" => (@benchmarkable gradient($loss_by_finitediff, $model,
+                                                               $x)))
+pinn = BenchmarkGroup("taylordiff" => pinn_t, "finitediff" => pinn_f)

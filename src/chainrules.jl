@@ -1,5 +1,5 @@
 import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing
-using ZygoteRules: @adjoint
+using Zygote: @adjoint
 
 function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
     mapreduce(*, +, value(a), value(b))

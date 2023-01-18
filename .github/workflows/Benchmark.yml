@@ -31,12 +31,6 @@ jobs:
           julia --project=benchmark -e '
             using Pkg
             Pkg.develop(path=".")
-            Pkg.instantiate()
-            Pkg.add(["PkgBenchmark", "HTTP", "JSON"])'
+            Pkg.instantiate()'
       - name: Run benchmarks and upload to server
-        run: |
-          julia --project=benchmark -e '
-            using PkgBenchmark, TaylorDiff
-            include("benchmark/utils.jl")
-            res = benchmarkpkg(TaylorDiff)
-            upload(res)'
+        run: julia --project=benchmark benchmark/runbenchmarks.jl

@@ -2,14 +2,16 @@
 
 <p align=center>
   <a href="https://www.repostatus.org/#active"><img src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active – The project has reached a stable, usable state and is being actively developed." /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
   <a href="https://juliadiff.org/TaylorDiff.jl/stable/"><img src="https://img.shields.io/badge/docs-stable-blue.svg" alt="Stable" /></a>
   <a href="https://juliadiff.org/TaylorDiff.jl/dev/"><img src="https://img.shields.io/badge/docs-dev-blue.svg" alt="Dev" /></a>
-  <a href="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/CI.yml?query=branch%3Amain"><img src="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/CI.yml/badge.svg?branch=main" alt="Build Status" /></a>
+  <br />
+  <a href="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Test.yml?query=branch%3Amain"><img src="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Test.yml/badge.svg?branch=main" alt="Build Status" /></a>
   <a href="https://codecov.io/gh/JuliaDiff/TaylorDiff.jl"><img src="https://codecov.io/gh/JuliaDiff/TaylorDiff.jl/branch/main/graph/badge.svg?token=5KYP7K71VQ"/></a>
   <a href="https://benchmark.tansongchen.com/TaylorDiff.jl"><img src="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Benchmark.yml/badge.svg?branch=main" alt="Benchmark Status" /></a>
   <br />
-  <a href="https://github.com/SciML/ColPrac"><img src="https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet" alt="ColPrac: Contributor's Guide on Collaborative Practices for Community Packages" /></a>
-  <a href="https://github.com/SciML/SciMLStyle"><img src="https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826" alt="SciML Code Style" /></a>
+  <a href="https://github.com/SciML/ColPrac"><img src="https://img.shields.io/badge/contributor's%20guide-ColPrac-blueviolet" alt="ColPrac: Contributor's Guide on Collaborative Practices for Community Packages" /></a>
+  <a href="https://github.com/SciML/SciMLStyle"><img src="https://img.shields.io/badge/code%20style-SciML-blueviolet" alt="SciML Code Style" /></a>
 </p>
 
 <p align=center>
