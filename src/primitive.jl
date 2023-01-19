@@ -15,17 +15,6 @@ import Base: hypot, max, min
 @inline cbrt(t::TaylorScalar) = ^(t, 1 / 3)
 @inline inv(t::TaylorScalar) = one(t) / t
 
-exp(t::TaylorScalar{T, 2}) where {T} =
-    let v = value(t), e1 = exp(v[1])
-        TaylorScalar{T, 2}((e1, e1 * v[2]))
-    end
-
-function exp(t::TaylorScalar{T, 3}) where {T}
-    let v = value(t), e1 = exp(v[1])
-        TaylorScalar{T, 3}((e1, e1 * v[2], e1 * v[3] + e1 * v[2] * v[2]))
-    end
-end
-
 for func in (:exp, :expm1, :exp2, :exp10)
     @eval @generated function $func(t::TaylorScalar{T, N}) where {T, N}
         ex = quote
@@ -36,7 +25,7 @@ for func in (:exp, :expm1, :exp2, :exp10)
             ex = quote
                 $ex
                 $(Symbol('v', i)) = +($([:($(binomial(i - 2, j - 1)) * $(Symbol('v', j)) *
-                                           v[$i + 1 - $j])
+                                           v[$(i + 1 - j)])
                                          for j in 1:(i - 1)]...))
             end
             if $(QuoteNode(func)) == :exp2
@@ -64,11 +53,11 @@ for func in (:sin, :cos)
             ex = :($ex;
                    $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) *
                                               $(Symbol('c', j)) *
-                                              v[$i + 1 - $j]) for j in 1:(i - 1)]...)))
+                                              v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
             ex = :($ex;
                    $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) *
                                               $(Symbol('s', j)) *
-                                              v[$i + 1 - $j]) for j in 1:(i - 1)]...)))
+                                              v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
         end
         if $(QuoteNode(func)) == :sin
             ex = :($ex; TaylorScalar($([Symbol('s', i) for i in 1:N]...)))
@@ -111,7 +100,7 @@ end
             $ex
             $(Symbol('v', i)) = (va[$i] -
                                  +($([:($(binomial(i - 1, j - 1)) * $(Symbol('v', j)) *
-                                        vb[$i + 1 - $j])
+                                        vb[$(i + 1 - j)])
                                       for j in 1:(i - 1)]...))) / vb[1]
         end
     end
@@ -129,7 +118,7 @@ end
             $ex
             $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
                                         $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
-                                       v[$i + 1 - $j])
+                                       v[$(i + 1 - j)])
                                      for j in 1:(i - 1)]...)) / v[1]
         end
     end
@@ -148,7 +137,7 @@ end
             $ex
             $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
                                         $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
-                                       v[$i + 1 - $j])
+                                       v[$(i + 1 - j)])
                                      for j in 1:(i - 1)]...)) / v[1]
         end
     end
@@ -179,9 +168,9 @@ raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Real, T <: Number, N} = df 
     for i in 2:M
         ex = quote
             $ex
-            $(Symbol('v', i)) = (vt[$i + 1] -
+            $(Symbol('v', i)) = (vt[$(i + 1)] -
                                  +($([:($(binomial(i - 1, j - 1)) * $(Symbol('v', j)) *
-                                        vdf[$i + 1 - $j])
+                                        vdf[$(i + 1 - j)])
                                       for j in 1:(i - 1)]...))) / vdf[1]
         end
     end
