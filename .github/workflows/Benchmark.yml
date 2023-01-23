@@ -26,11 +26,5 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
-      - name: Install PkgBenchmark and instantiate benchmark environment
-        run: |
-          julia --project=benchmark -e '
-            using Pkg
-            Pkg.develop(path=".")
-            Pkg.instantiate()'
       - name: Run benchmarks and upload to server
         run: julia --project=benchmark benchmark/runbenchmarks.jl

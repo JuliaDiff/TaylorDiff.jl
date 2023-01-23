@@ -1,0 +1,12 @@
+steps:
+  - label: ":julia: Benchmark"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.8"
+      - JuliaCI/julia-test#v1:
+          coverage: false
+    agents:
+      os: "linux"
+      queue: "juliaecosystem"
+      arch: "x86_64"
+    timeout_in_minutes: 30
