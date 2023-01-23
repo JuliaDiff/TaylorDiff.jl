@@ -24,7 +24,5 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
-      - uses: julia-actions/julia-buildpkg@v1
       - name: Run benchmarks and upload to server
         run: julia --project=benchmark benchmark/runbenchmarks.jl
