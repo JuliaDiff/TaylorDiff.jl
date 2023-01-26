@@ -1,4 +1,5 @@
-import Base: zero, one, adjoint, conj
+import Base: zero, one, adjoint, conj, transpose
+import Base: +, -, *, /
 import Base: convert, promote_rule
 
 export TaylorScalar
@@ -12,7 +13,7 @@ Representation of Taylor polynomials.
 
 - `value::NTuple{N, T}`: i-th element of this stores the (i-1)-th derivative
 """
-struct TaylorScalar{T <: Number, N} <: Number
+struct TaylorScalar{T <: Number, N}
     value::NTuple{N, T}
 end
 
@@ -69,3 +70,12 @@ function promote_rule(::Type{TaylorScalar{T, N}},
                       ::Type{S}) where {T <: Number, S <: Number, N}
     TaylorScalar{promote_type(T, S), N}
 end
+
+# Number-like convention (I patched them after removing <: Number)
+
+convert(::Type{TaylorScalar{T, N}}, x::Number) where {T, N} = TaylorScalar{T, N}(x)
+for op in (:+, :-, :*, :/)
+    @eval @inline $op(a::TaylorScalar, b::Number) = $op(promote(a, b)...)
+    @eval @inline $op(a::Number, b::TaylorScalar) = $op(promote(a, b)...)
+end
+transpose(t::TaylorScalar) = t
