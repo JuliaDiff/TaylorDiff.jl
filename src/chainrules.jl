@@ -5,32 +5,6 @@ function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
     mapreduce(*, +, value(a), value(b))
 end
 
-NONLINEAR_UNARY_FUNCTIONS = Function[exp, exp2, exp10, expm1,
-                                     log, log2, log10, log1p,
-                                     inv, sqrt, cbrt,
-                                     sin, cos, tan, cot, sec, csc,
-                                     asin, acos, atan, acot, asec, acsc,
-                                     sinh, cosh, tanh, coth, sech, csch,
-                                     asinh, acosh, atanh, acoth, asech, acsch]
-
-for func in NONLINEAR_UNARY_FUNCTIONS
-    @eval @opt_out rrule(::typeof($func), ::TaylorScalar)
-end
-
-NONLINEAR_BINARY_FUNCTIONS = Function[*, /, ^]
-
-for func in NONLINEAR_BINARY_FUNCTIONS
-    @eval @opt_out rrule(::typeof($func), ::TaylorScalar, ::TaylorScalar)
-    @eval @opt_out rrule(::typeof($func), ::TaylorScalar, ::Number)
-    @eval @opt_out rrule(::typeof($func), ::Number, ::TaylorScalar)
-end
-
-# Other special cases
-
-@opt_out rrule(::typeof(Base.literal_pow), ::typeof(^), x::TaylorScalar, ::Val{p}) where {p}
-@opt_out rrule(::RuleConfig, ::typeof(Base.literal_pow), ::typeof(^), x::TaylorScalar,
-               ::Val{p}) where {p}
-
 function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T <: Number}
     taylor_scalar_pullback(t̄) = NoTangent(), value(t̄)
     return TaylorScalar(v), taylor_scalar_pullback
@@ -75,3 +49,10 @@ end
 end
 
 (project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
+
+# Not-a-number patches
+
+ProjectTo(::T) where {T <: TaylorScalar} = ProjectTo{T}()
+(p::ProjectTo{T})(x::T) where {T <: TaylorScalar} = x
+ProjectTo(x::AbstractArray{T}) where {T <: TaylorScalar} = ProjectTo{AbstractArray}(; element=ProjectTo(zero(T)), axes=axes(x))
+(p::ProjectTo{AbstractArray{T}})(x::AbstractArray{T}) where {T <: TaylorScalar} = x

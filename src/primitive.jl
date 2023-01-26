@@ -1,4 +1,3 @@
-
 import Base: abs, abs2
 import Base: exp, exp2, exp10, expm1, log, log2, log10, log1p, inv, sqrt, cbrt
 import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch
