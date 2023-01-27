@@ -1,5 +1,6 @@
 import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing
-using Zygote: @adjoint
+using Base.Broadcast: broadcasted
+import Zygote: @adjoint, accum_sum, unbroadcast, Numeric, ∇getindex, _project
 
 function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
     mapreduce(*, +, value(a), value(b))
@@ -56,3 +57,56 @@ ProjectTo(::T) where {T <: TaylorScalar} = ProjectTo{T}()
 (p::ProjectTo{T})(x::T) where {T <: TaylorScalar} = x
 ProjectTo(x::AbstractArray{T}) where {T <: TaylorScalar} = ProjectTo{AbstractArray}(; element=ProjectTo(zero(T)), axes=axes(x))
 (p::ProjectTo{AbstractArray{T}})(x::AbstractArray{T}) where {T <: TaylorScalar} = x
+accum_sum(xs::AbstractArray{T}; dims = :) where {T <: TaylorScalar} = sum(xs, dims = dims)
+
+TaylorNumeric{T<:TaylorScalar} = Union{T, AbstractArray{<:T}}
+
+@adjoint broadcasted(::typeof(+), xs::Union{Numeric, TaylorNumeric}...) = broadcast(+, xs...), ȳ -> (nothing, map(x -> unbroadcast(x, ȳ), xs)...)
+
+struct TaylorOneElement{T,N,I,A} <: AbstractArray{T,N}
+    val::T
+    ind::I
+    axes::A
+    TaylorOneElement(val::T, ind::I, axes::A) where {T<:TaylorScalar, I<:NTuple{N,Int}, A<:NTuple{N,AbstractUnitRange}} where {N} = new{T,N,I,A}(val, ind, axes)
+end
+
+Base.size(A::TaylorOneElement) = map(length, A.axes)
+Base.axes(A::TaylorOneElement) = A.axes
+Base.getindex(A::TaylorOneElement{T,N}, i::Vararg{Int,N}) where {T,N} = ifelse(i==A.ind, A.val, zero(T))
+
+∇getindex(x::AbstractArray{T, N}, inds) where {T <: TaylorScalar, N} = dy -> begin
+    dx = TaylorOneElement(dy, inds, axes(x))
+    return (_project(x, dx), map(_->nothing, inds)...)
+end
+
+@generated function mul_adjoint(Ω::TaylorScalar{T, N}, x::TaylorScalar{T, N}) where {T, N}
+    return quote
+        vΩ, vx = value(Ω), value(x)
+        @inbounds TaylorScalar($([:(+($([:($(binomial(j - 1, i - 1)) * vΩ[$j] *
+                                           vx[$(j + 1 - i)]) for j in i:N]...)))
+                                  for i in 1:N]...))
+    end
+end
+
+rrule(::typeof(*), x::TaylorScalar) = rrule(identity, x)
+
+function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar)
+    function times_pullback2(Ω̇)
+        ΔΩ = unthunk(Ω̇)
+        return (NoTangent(), ProjectTo(x)(mul_adjoint(ΔΩ, y)), ProjectTo(y)(mul_adjoint(ΔΩ, x)))
+    end
+    return x * y, times_pullback2
+end
+
+function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar, more::TaylorScalar...)
+    Ω2, back2 = rrule(*, x, y)
+    Ω3, back3 = rrule(*, Ω2, z)
+    Ω4, back4 = rrule(*, Ω3, more...)
+    function times_pullback4(Ω̇)
+        Δ4 = back4(unthunk(Ω̇))  # (0, ΔΩ3, Δmore...)
+        Δ3 = back3(Δ4[2])       # (0, ΔΩ2, Δz)
+        Δ2 = back2(Δ3[2])       # (0, Δx, Δy)
+        return (Δ2..., Δ3[3], Δ4[3:end]...)
+    end
+    return Ω4, times_pullback4
+end
