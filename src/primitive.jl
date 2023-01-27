@@ -156,7 +156,7 @@ end
     end
 end
 
-raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Real, T <: Number, N} = df * t
+raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Number, T, N} = df * t
 
 @generated function raiseinv(f::T, df::TaylorScalar{T, M},
                              t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N

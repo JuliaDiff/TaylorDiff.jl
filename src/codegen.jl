@@ -1,30 +1,30 @@
 using ChainRulesCore
 using SymbolicUtils, SymbolicUtils.Code
-using SymbolicUtils: Pow
+using SymbolicUtils: BasicSymbolic, Pow
 
-@scalar_rule +(x::Any) true
-@scalar_rule -(x::Any) -1
-@scalar_rule deg2rad(x::Any) deg2rad(one(x))
-@scalar_rule rad2deg(x::Any) rad2deg(one(x))
-@scalar_rule asin(x::Any) inv(sqrt(1 - x^2))
-@scalar_rule acos(x::Any) inv(-sqrt(1 - x^2))
-@scalar_rule atan(x::Any) inv(-(1 + x^2))
-@scalar_rule acot(x::Any) inv(-(1 + x^2))
-@scalar_rule acsc(x::Any) inv(x^2 * -sqrt(1 - x^-2))
-@scalar_rule asec(x::Any) inv(x^2 * sqrt(1 - x^-2))
-@scalar_rule log(x::Any) inv(x)
-@scalar_rule log10(x::Any) inv(log(10.0) * x)
-@scalar_rule log1p(x::Any) inv(x + 1)
-@scalar_rule log2(x::Any) inv(log(2.0) * x)
-@scalar_rule sinh(x::Any) cosh(x)
-@scalar_rule cosh(x::Any) sinh(x)
-@scalar_rule tanh(x::Any) 1-Ω^2
-@scalar_rule acosh(x::Any) inv(sqrt(x - 1) * sqrt(x + 1))
-@scalar_rule acoth(x::Any) inv(1 - x^2)
-@scalar_rule acsch(x::Any) inv(x^2 * -sqrt(1 + x^-2))
-@scalar_rule asech(x::Any) inv(x * -sqrt(1 - x^2))
-@scalar_rule asinh(x::Any) inv(sqrt(x^2 + 1))
-@scalar_rule atanh(x::Any) inv(1 - x^2)
+@scalar_rule +(x::BasicSymbolic) true
+@scalar_rule -(x::BasicSymbolic) -1
+@scalar_rule deg2rad(x::BasicSymbolic) deg2rad(one(x))
+@scalar_rule rad2deg(x::BasicSymbolic) rad2deg(one(x))
+@scalar_rule asin(x::BasicSymbolic) inv(sqrt(1 - x^2))
+@scalar_rule acos(x::BasicSymbolic) inv(-sqrt(1 - x^2))
+@scalar_rule atan(x::BasicSymbolic) inv(-(1 + x^2))
+@scalar_rule acot(x::BasicSymbolic) inv(-(1 + x^2))
+@scalar_rule acsc(x::BasicSymbolic) inv(x^2 * -sqrt(1 - x^-2))
+@scalar_rule asec(x::BasicSymbolic) inv(x^2 * sqrt(1 - x^-2))
+@scalar_rule log(x::BasicSymbolic) inv(x)
+@scalar_rule log10(x::BasicSymbolic) inv(log(10.0) * x)
+@scalar_rule log1p(x::BasicSymbolic) inv(x + 1)
+@scalar_rule log2(x::BasicSymbolic) inv(log(2.0) * x)
+@scalar_rule sinh(x::BasicSymbolic) cosh(x)
+@scalar_rule cosh(x::BasicSymbolic) sinh(x)
+@scalar_rule tanh(x::BasicSymbolic) 1-Ω^2
+@scalar_rule acosh(x::BasicSymbolic) inv(sqrt(x - 1) * sqrt(x + 1))
+@scalar_rule acoth(x::BasicSymbolic) inv(1 - x^2)
+@scalar_rule acsch(x::BasicSymbolic) inv(x^2 * -sqrt(1 + x^-2))
+@scalar_rule asech(x::BasicSymbolic) inv(x * -sqrt(1 - x^2))
+@scalar_rule asinh(x::BasicSymbolic) inv(sqrt(x^2 + 1))
+@scalar_rule atanh(x::BasicSymbolic) inv(1 - x^2)
 
 dummy = (NoTangent(), 1)
 @syms t₁

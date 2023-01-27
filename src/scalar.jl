@@ -5,7 +5,7 @@ import Base: convert, promote_rule
 export TaylorScalar
 
 """
-    TaylorScalar{T <: Number, N}
+    TaylorScalar{T, N}
 
 Representation of Taylor polynomials.
 
@@ -13,18 +13,20 @@ Representation of Taylor polynomials.
 
 - `value::NTuple{N, T}`: i-th element of this stores the (i-1)-th derivative
 """
-struct TaylorScalar{T <: Number, N}
+struct TaylorScalar{T, N}
     value::NTuple{N, T}
 end
 
-@inline TaylorScalar(xs::Vararg{T, N}) where {T <: Number, N} = TaylorScalar(xs)
+TaylorOrNumber = Union{TaylorScalar, Number}
+
+@inline TaylorScalar(xs::Vararg{T, N}) where {T, N} = TaylorScalar(xs)
 
 """
-    TaylorScalar{T, N}(x::S) where {S <: Number, T <: Number, N}
+    TaylorScalar{T, N}(x::T) where {T, N}
 
 Construct a Taylor polynomial with zeroth order coefficient.
 """
-@generated function TaylorScalar{T, N}(x::S) where {S <: Number, T <: Number, N}
+@generated function TaylorScalar{T, N}(x::T) where {T, N}
     return quote
         $(Expr(:meta, :inline))
         TaylorScalar((T(x), $(zeros(T, N - 1)...)))
@@ -32,18 +34,18 @@ Construct a Taylor polynomial with zeroth order coefficient.
 end
 
 """
-    TaylorScalar{T, N}(x::S, d::S) where {S <: Number, T <: Number, N}
+    TaylorScalar{T, N}(x::T, d::T) where {T, N}
 
 Construct a Taylor polynomial with zeroth and first order coefficient, acting as a seed.
 """
-@generated function TaylorScalar{T, N}(x::S, d::S) where {S <: Number, T <: Number, N}
+@generated function TaylorScalar{T, N}(x::T, d::T) where {T, N}
     return quote
         $(Expr(:meta, :inline))
         TaylorScalar((T(x), T(d), $(zeros(T, N - 2)...)))
     end
 end
 
-@generated function TaylorScalar{T, N}(t::TaylorScalar{T, M}) where {T <: Number, N, M}
+@generated function TaylorScalar{T, N}(t::TaylorScalar{T, M}) where {T, N, M}
     N <= M ? quote
         $(Expr(:meta, :inline))
         TaylorScalar(value(t)[1:N])
@@ -67,13 +69,14 @@ adjoint(t::TaylorScalar) = t
 conj(t::TaylorScalar) = t
 
 function promote_rule(::Type{TaylorScalar{T, N}},
-                      ::Type{S}) where {T <: Number, S <: Number, N}
+                      ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
 
 # Number-like convention (I patched them after removing <: Number)
 
-convert(::Type{TaylorScalar{T, N}}, x::Number) where {T, N} = TaylorScalar{T, N}(x)
+convert(::Type{TaylorScalar{T, N}}, x::TaylorScalar{T, N}) where {T, N} = x
+convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N} = TaylorScalar{T, N}(convert(T, x))
 for op in (:+, :-, :*, :/)
     @eval @inline $op(a::TaylorScalar, b::Number) = $op(promote(a, b)...)
     @eval @inline $op(a::Number, b::TaylorScalar) = $op(promote(a, b)...)
