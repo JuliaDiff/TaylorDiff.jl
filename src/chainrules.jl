@@ -55,28 +55,40 @@ end
 
 ProjectTo(::T) where {T <: TaylorScalar} = ProjectTo{T}()
 (p::ProjectTo{T})(x::T) where {T <: TaylorScalar} = x
-ProjectTo(x::AbstractArray{T}) where {T <: TaylorScalar} = ProjectTo{AbstractArray}(; element=ProjectTo(zero(T)), axes=axes(x))
+function ProjectTo(x::AbstractArray{T}) where {T <: TaylorScalar}
+    ProjectTo{AbstractArray}(; element = ProjectTo(zero(T)), axes = axes(x))
+end
 (p::ProjectTo{AbstractArray{T}})(x::AbstractArray{T}) where {T <: TaylorScalar} = x
 accum_sum(xs::AbstractArray{T}; dims = :) where {T <: TaylorScalar} = sum(xs, dims = dims)
 
-TaylorNumeric{T<:TaylorScalar} = Union{T, AbstractArray{<:T}}
+TaylorNumeric{T <: TaylorScalar} = Union{T, AbstractArray{<:T}}
 
-@adjoint broadcasted(::typeof(+), xs::Union{Numeric, TaylorNumeric}...) = broadcast(+, xs...), ȳ -> (nothing, map(x -> unbroadcast(x, ȳ), xs)...)
+@adjoint function broadcasted(::typeof(+), xs::Union{Numeric, TaylorNumeric}...)
+    broadcast(+, xs...), ȳ -> (nothing, map(x -> unbroadcast(x, ȳ), xs)...)
+end
 
-struct TaylorOneElement{T,N,I,A} <: AbstractArray{T,N}
+struct TaylorOneElement{T, N, I, A} <: AbstractArray{T, N}
     val::T
     ind::I
     axes::A
-    TaylorOneElement(val::T, ind::I, axes::A) where {T<:TaylorScalar, I<:NTuple{N,Int}, A<:NTuple{N,AbstractUnitRange}} where {N} = new{T,N,I,A}(val, ind, axes)
+    function TaylorOneElement(val::T, ind::I,
+                              axes::A) where {T <: TaylorScalar, I <: NTuple{N, Int},
+                                              A <: NTuple{N, AbstractUnitRange}} where {N}
+        new{T, N, I, A}(val, ind, axes)
+    end
 end
 
 Base.size(A::TaylorOneElement) = map(length, A.axes)
 Base.axes(A::TaylorOneElement) = A.axes
-Base.getindex(A::TaylorOneElement{T,N}, i::Vararg{Int,N}) where {T,N} = ifelse(i==A.ind, A.val, zero(T))
+function Base.getindex(A::TaylorOneElement{T, N}, i::Vararg{Int, N}) where {T, N}
+    ifelse(i == A.ind, A.val, zero(T))
+end
 
-∇getindex(x::AbstractArray{T, N}, inds) where {T <: TaylorScalar, N} = dy -> begin
-    dx = TaylorOneElement(dy, inds, axes(x))
-    return (_project(x, dx), map(_->nothing, inds)...)
+function ∇getindex(x::AbstractArray{T, N}, inds) where {T <: TaylorScalar, N}
+    dy -> begin
+        dx = TaylorOneElement(dy, inds, axes(x))
+        return (_project(x, dx), map(_ -> nothing, inds)...)
+    end
 end
 
 @generated function mul_adjoint(Ω::TaylorScalar{T, N}, x::TaylorScalar{T, N}) where {T, N}
@@ -93,12 +105,14 @@ rrule(::typeof(*), x::TaylorScalar) = rrule(identity, x)
 function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar)
     function times_pullback2(Ω̇)
         ΔΩ = unthunk(Ω̇)
-        return (NoTangent(), ProjectTo(x)(mul_adjoint(ΔΩ, y)), ProjectTo(y)(mul_adjoint(ΔΩ, x)))
+        return (NoTangent(), ProjectTo(x)(mul_adjoint(ΔΩ, y)),
+                ProjectTo(y)(mul_adjoint(ΔΩ, x)))
     end
     return x * y, times_pullback2
 end
 
-function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar, more::TaylorScalar...)
+function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar,
+               more::TaylorScalar...)
     Ω2, back2 = rrule(*, x, y)
     Ω3, back3 = rrule(*, Ω2, z)
     Ω4, back4 = rrule(*, Ω3, more...)

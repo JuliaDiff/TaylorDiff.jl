@@ -76,7 +76,9 @@ end
 # Number-like convention (I patched them after removing <: Number)
 
 convert(::Type{TaylorScalar{T, N}}, x::TaylorScalar{T, N}) where {T, N} = x
-convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N} = TaylorScalar{T, N}(convert(T, x))
+function convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N}
+    TaylorScalar{T, N}(convert(T, x))
+end
 for op in (:+, :-, :*, :/)
     @eval @inline $op(a::TaylorScalar, b::Number) = $op(promote(a, b)...)
     @eval @inline $op(a::Number, b::TaylorScalar) = $op(promote(a, b)...)
