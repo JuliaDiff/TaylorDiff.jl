@@ -79,8 +79,14 @@ convert(::Type{TaylorScalar{T, N}}, x::TaylorScalar{T, N}) where {T, N} = x
 function convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N}
     TaylorScalar{T, N}(convert(T, x))
 end
-for op in (:+, :-, :*, :/)
-    @eval @inline $op(a::TaylorScalar, b::Number) = $op(promote(a, b)...)
-    @eval @inline $op(a::Number, b::TaylorScalar) = $op(promote(a, b)...)
-end
+@inline +(a::Number, b::TaylorScalar) = TaylorScalar((a + value(b)[1]), value(b)[2:end]...)
+@inline -(a::Number, b::TaylorScalar) = TaylorScalar((a - value(b)[1]), .-value(b)[2:end]...)
+@inline *(a::Number, b::TaylorScalar) = TaylorScalar((a .* value(b))...)
+@inline /(a::Number, b::TaylorScalar) = /(promote(a, b)...)
+
+@inline +(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] + b), value(a)[2:end]...)
+@inline -(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] - b), value(a)[2:end]...)
+@inline *(a::TaylorScalar, b::Number) = TaylorScalar((value(a) .* b)...)
+@inline /(a::TaylorScalar, b::Number) = TaylorScalar((value(a) ./ b)...)
+
 transpose(t::TaylorScalar) = t
