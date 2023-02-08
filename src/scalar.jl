@@ -72,12 +72,18 @@ function promote_rule(::Type{TaylorScalar{T, N}},
                       ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
+function promote_rule(::Type{TaylorScalar{T1, N}}, ::Type{TaylorScalar{T2,N}}) where {T1, T2, N}
+TaylorScalar{promote_type(T1,T2), N}
+end
 
 # Number-like convention (I patched them after removing <: Number)
 
 convert(::Type{TaylorScalar{T, N}}, x::TaylorScalar{T, N}) where {T, N} = x
 function convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N}
     TaylorScalar{T, N}(convert(T, x))
+end
+function convert(::Type{TaylorScalar{T1,N}},x::TaylorScalar{T2,N}) where {T1,T2,N}
+    TaylorScalar{T1,N}(convert.(T1,value(x)))
 end
 @inline +(a::Number, b::TaylorScalar) = TaylorScalar((a + value(b)[1]), value(b)[2:end]...)
 @inline -(a::Number, b::TaylorScalar) = TaylorScalar((a - value(b)[1]), .-value(b)[2:end]...)
