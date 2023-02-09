@@ -19,5 +19,6 @@ steps:
     agents:
       os: "linux"
       queue: "juliaecosystem"
+      exclusive: true
       arch: "x86_64"
     timeout_in_minutes: 30
