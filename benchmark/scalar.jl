@@ -16,6 +16,7 @@ function create_benchmark_scalar_function(f::F, x::T) where {F, T <: Number}
     for (index, N) in enumerate(Ns)
         taylordiff_group[index] = @benchmarkable derivative($f, $x, $N)
     end
-    return BenchmarkGroup("forwarddiff" => forwarddiff_group,
+    return BenchmarkGroup(["scalar"],
+                          "forwarddiff" => forwarddiff_group,
                           "taylordiff" => taylordiff_group)
 end

@@ -20,6 +20,7 @@ function create_benchmark_mlp(mlp_conf::Tuple{Int, Int}, x::Vector{T},
     for (index, N) in enumerate(Ns)
         taylordiff[index] = @benchmarkable derivative($mlp, $x, $l, $N)
     end
-    return BenchmarkGroup("forwarddiff" => forwarddiff,
+    return BenchmarkGroup(["vector"],
+                          "forwarddiff" => forwarddiff,
                           "taylordiff" => taylordiff)
 end

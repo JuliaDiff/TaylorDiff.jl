@@ -31,4 +31,4 @@ pinn_t = BenchmarkGroup("primal" => (@benchmarkable loss_by_taylordiff($model, $
 pinn_f = BenchmarkGroup("primal" => (@benchmarkable loss_by_finitediff($model, $x)),
                         "gradient" => (@benchmarkable gradient($loss_by_finitediff, $model,
                                                                $x)))
-pinn = BenchmarkGroup("taylordiff" => pinn_t, "finitediff" => pinn_f)
+pinn = BenchmarkGroup(["vector", "physical"], "taylordiff" => pinn_t, "finitediff" => pinn_f)
