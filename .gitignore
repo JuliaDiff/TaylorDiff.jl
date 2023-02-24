@@ -1,5 +1,6 @@
 .vscode
 Manifest.toml
+!benchmark/Manifest.toml
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
