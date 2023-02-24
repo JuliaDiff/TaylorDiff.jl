@@ -1,5 +1,3 @@
-import Base: zero, one, adjoint, conj, transpose
-import Base: +, -, *, /
 import Base: convert, promote_rule
 
 export TaylorScalar
@@ -60,20 +58,13 @@ end
 @inline extract_derivative(r, i::Integer) = false
 @inline primal(t::TaylorScalar) = extract_derivative(t, 1)
 
-@inline zero(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(zero(T))
-@inline one(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(one(T))
-@inline zero(::TaylorScalar{T, N}) where {T, N} = zero(TaylorScalar{T, N})
-@inline one(::TaylorScalar{T, N}) where {T, N} = one(TaylorScalar{T, N})
-
-adjoint(t::TaylorScalar) = t
-conj(t::TaylorScalar) = t
-
 function promote_rule(::Type{TaylorScalar{T, N}},
                       ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
-function promote_rule(::Type{TaylorScalar{T1, N}}, ::Type{TaylorScalar{T2,N}}) where {T1, T2, N}
-TaylorScalar{promote_type(T1,T2), N}
+function promote_rule(::Type{TaylorScalar{T1, N}},
+                      ::Type{TaylorScalar{T2, N}}) where {T1, T2, N}
+    TaylorScalar{promote_type(T1, T2), N}
 end
 
 # Number-like convention (I patched them after removing <: Number)
@@ -82,17 +73,6 @@ convert(::Type{TaylorScalar{T, N}}, x::TaylorScalar{T, N}) where {T, N} = x
 function convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N}
     TaylorScalar{T, N}(convert(T, x))
 end
-function convert(::Type{TaylorScalar{T1,N}},x::TaylorScalar{T2,N}) where {T1,T2,N}
-    TaylorScalar{T1,N}(convert.(T1,value(x)))
+function convert(::Type{TaylorScalar{T1, N}}, x::TaylorScalar{T2, N}) where {T1, T2, N}
+    TaylorScalar{T1, N}(convert.(T1, value(x)))
 end
-@inline +(a::Number, b::TaylorScalar) = TaylorScalar((a + value(b)[1]), value(b)[2:end]...)
-@inline -(a::Number, b::TaylorScalar) = TaylorScalar((a - value(b)[1]), .-value(b)[2:end]...)
-@inline *(a::Number, b::TaylorScalar) = TaylorScalar((a .* value(b))...)
-@inline /(a::Number, b::TaylorScalar) = /(promote(a, b)...)
-
-@inline +(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] + b), value(a)[2:end]...)
-@inline -(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] - b), value(a)[2:end]...)
-@inline *(a::TaylorScalar, b::Number) = TaylorScalar((value(a) .* b)...)
-@inline /(a::TaylorScalar, b::Number) = TaylorScalar((value(a) ./ b)...)
-
-transpose(t::TaylorScalar) = t
