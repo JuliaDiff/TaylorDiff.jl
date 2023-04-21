@@ -6,9 +6,9 @@
   <a href="https://juliadiff.org/TaylorDiff.jl/stable/"><img src="https://img.shields.io/badge/docs-stable-blue.svg" alt="Stable" /></a>
   <a href="https://juliadiff.org/TaylorDiff.jl/dev/"><img src="https://img.shields.io/badge/docs-dev-blue.svg" alt="Dev" /></a>
   <br />
-  <a href="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Test.yml?query=branch%3Amain"><img src="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Test.yml/badge.svg?branch=main" alt="Build Status" /></a>
-  <a href="https://codecov.io/gh/JuliaDiff/TaylorDiff.jl"><img src="https://codecov.io/gh/JuliaDiff/TaylorDiff.jl/branch/main/graph/badge.svg?token=5KYP7K71VQ"/></a>
-  <a href="https://benchmark.tansongchen.com/TaylorDiff.jl"><img src="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Benchmark.yml/badge.svg?branch=main" alt="Benchmark Status" /></a>
+  <a href="https://github.com/JuliaDiff/TaylorDiff.jl/actions/workflows/Test.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/JuliaDiff/TaylorDiff.jl/Test.yml?branch=main&label=test" alt="Build Status" /></a>
+  <a href="https://codecov.io/gh/JuliaDiff/TaylorDiff.jl"><img src="https://img.shields.io/codecov/c/gh/JuliaDiff/TaylorDiff.jl/main?token=5KYP7K71VQ"/></a>
+  <a href="https://benchmark.tansongchen.com/TaylorDiff.jl"><img src="https://img.shields.io/buildkite/2c801728055463e7c8baeeb3cc187b964587235a49b3ed39ab/main.svg?label=benchmark" alt="Benchmark Status" /></a>
   <br />
   <a href="https://github.com/SciML/ColPrac"><img src="https://img.shields.io/badge/contributor's%20guide-ColPrac-blueviolet" alt="ColPrac: Contributor's Guide on Collaborative Practices for Community Packages" /></a>
   <a href="https://github.com/SciML/SciMLStyle"><img src="https://img.shields.io/badge/code%20style-SciML-blueviolet" alt="SciML Code Style" /></a>

@@ -1,5 +1,6 @@
 steps:
   - label: ":julia: Run tests"
+    key: "test"
     plugins:
       - JuliaCI/julia#v1:
           version: "1.8"
@@ -12,6 +13,7 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":julia: Run benchmarks"
+    key: "benchmark"
     command: "julia --project=benchmark benchmark/runbenchmarks.jl"
     plugins:
       - JuliaCI/julia#v1:
