@@ -16,4 +16,5 @@ results = benchmarkpkg(TaylorDiff)
 reconstructed = Dict("context" => context,
                      "suite" => benchmarkgroup,
                      "config" => benchmarkconfig)
-put("https://benchmark-data.tansongchen.workers.dev/TaylorDiff.jl"; body = json(reconstructed))
+put("https://benchmark-data.tansongchen.workers.dev/TaylorDiff.jl";
+    body = json(reconstructed))
