@@ -30,7 +30,7 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
     return extract_derivative(t, i), extract_derivative_pullback
 end
 
-function rrule(::typeof(*), A::Matrix{S},
+function rrule(::typeof(*), A::AbstractMatrix{S},
                t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
