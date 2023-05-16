@@ -9,7 +9,7 @@
 			]
 		}
 	},
-	"postCreateCommand": "julia -e 'using Pkg; Pkg.add([\"Revise\", \"TestEnv\"])'",
+	"postCreateCommand": "julia -e 'using Pkg; Pkg.add([\"Revise\", \"TestEnv\", \"JuliaFormatter\", \"Cthulhu\"])'",
 	"hostRequirements": {
 		"cpus": 4
 	}
