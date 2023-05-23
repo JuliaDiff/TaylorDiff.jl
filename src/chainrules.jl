@@ -31,10 +31,12 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-    t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
+    t::AbstractVector{TaylorScalar{T, N}}) where {N, S <: Number, T}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
-        NoTangent(), @thunk(project_A(contract.(x̄, transpose(t)))), @thunk(transpose(A)*x̄)
+        x̂ = reinterpret(reshape, T, x̄)
+        t̂ = reinterpret(reshape, T, t)
+        NoTangent(), @thunk(project_A(transpose(x̂) * t̂)), @thunk(transpose(A)*x̄)
     end
     return A * t, gemv_pullback
 end
