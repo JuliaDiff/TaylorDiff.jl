@@ -4,6 +4,7 @@ authors = ["Songchen Tan <i@tansongchen.com>"]
 version = "0.2.1"
 
 [deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 ChainRulesOverloadGeneration = "f51149dc-2911-5acf-81fc-2076a2a81d4f"

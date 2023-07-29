@@ -1,5 +1,6 @@
 
 export derivative
+using CUDA
 
 """
     derivative(f, x::T, order::Int64)
@@ -21,6 +22,12 @@ end
 @inline function derivative(f, x::V, l::V,
                             order::Int64) where {V <: AbstractVector{<:Number}}
     derivative(f, x, l, Val{order + 1}())
+end
+
+# add CUDA support
+@inline function derivative(f, x::CuArray, l::CuArray,
+    order::Int64) 
+derivative(f, x, l, Val{order + 1}())
 end
 
 @inline function derivative(f, x::T, ::Val{N}) where {T <: Number, N}
