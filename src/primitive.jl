@@ -50,13 +50,13 @@ for func in (:sin, :cos)
         end
         for i in 2:N
             ex = :($ex;
-                   $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) *
-                                              $(Symbol('c', j)) *
-                                              v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
+            $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) *
+                                       $(Symbol('c', j)) *
+                                       v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
             ex = :($ex;
-                   $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) *
-                                              $(Symbol('s', j)) *
-                                              v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
+            $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) *
+                                       $(Symbol('s', j)) *
+                                       v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
         end
         if $(QuoteNode(func)) == :sin
             ex = :($ex; TaylorScalar($([Symbol('s', i) for i in 1:N]...)))
@@ -145,21 +145,21 @@ end
 end
 
 @generated function raise(f::T, df::TaylorScalar{T, M},
-                          t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
+    t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
     return quote
         $(Expr(:meta, :inline))
         vdf, vt = value(df), value(t)
         @inbounds TaylorScalar(f,
-                               $([:(+($([:($(binomial(i - 1, j - 1)) * vdf[$j] *
-                                           vt[$(i + 2 - j)]) for j in 1:i]...)))
-                                  for i in 1:M]...))
+            $([:(+($([:($(binomial(i - 1, j - 1)) * vdf[$j] *
+                        vt[$(i + 2 - j)]) for j in 1:i]...)))
+               for i in 1:M]...))
     end
 end
 
 raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Number, T, N} = df * t
 
 @generated function raiseinv(f::T, df::TaylorScalar{T, M},
-                             t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
+    t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
     ex = quote
         vdf, vt = value(df), value(t)
         v1 = vt[2] / vdf[1]

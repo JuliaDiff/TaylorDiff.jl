@@ -29,10 +29,10 @@ using SymbolicUtils: BasicSymbolic, Pow
 dummy = (NoTangent(), 1)
 @syms t₁
 for func in (+, -, deg2rad, rad2deg,
-             sinh, cosh, tanh,
-             asin, acos, atan, asec, acsc, acot,
-             log, log10, log1p, log2,
-             asinh, acosh, atanh, asech, acsch, acoth)
+    sinh, cosh, tanh,
+    asin, acos, atan, asec, acsc, acot,
+    log, log10, log1p, log2,
+    asinh, acosh, atanh, asech, acsch, acoth)
     F = typeof(func)
     # base case
     @eval function (op::$F)(t::TaylorScalar{T, 2}) where {T}

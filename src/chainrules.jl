@@ -22,7 +22,7 @@ function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
-               i::Integer) where {N, T <: Number}
+    i::Integer) where {N, T <: Number}
     function extract_derivative_pullback(d̄)
         NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
         NoTangent()
@@ -31,7 +31,7 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-               t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
+    t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
         NoTangent(), @thunk(project_A(contract.(x̄, transpose(t)))), @thunk(transpose(A)*x̄)
@@ -72,8 +72,8 @@ struct TaylorOneElement{T, N, I, A} <: AbstractArray{T, N}
     ind::I
     axes::A
     function TaylorOneElement(val::T, ind::I,
-                              axes::A) where {T <: TaylorScalar, I <: NTuple{N, Int},
-                                              A <: NTuple{N, AbstractUnitRange}} where {N}
+        axes::A) where {T <: TaylorScalar, I <: NTuple{N, Int},
+        A <: NTuple{N, AbstractUnitRange}} where {N}
         new{T, N, I, A}(val, ind, axes)
     end
 end
@@ -106,13 +106,13 @@ function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar)
     function times_pullback2(Ω̇)
         ΔΩ = unthunk(Ω̇)
         return (NoTangent(), ProjectTo(x)(mul_adjoint(ΔΩ, y)),
-                ProjectTo(y)(mul_adjoint(ΔΩ, x)))
+            ProjectTo(y)(mul_adjoint(ΔΩ, x)))
     end
     return x * y, times_pullback2
 end
 
 function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar,
-               more::TaylorScalar...)
+    more::TaylorScalar...)
     Ω2, back2 = rrule(*, x, y)
     Ω3, back3 = rrule(*, Ω2, z)
     Ω4, back4 = rrule(*, Ω3, more...)

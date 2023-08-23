@@ -69,7 +69,7 @@ adjoint(t::TaylorScalar) = t
 conj(t::TaylorScalar) = t
 
 function promote_rule(::Type{TaylorScalar{T, N}},
-                      ::Type{S}) where {T, S, N}
+    ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
 

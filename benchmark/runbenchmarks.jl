@@ -14,7 +14,7 @@ context = provide_context(Dummy())
 results = benchmarkpkg(TaylorDiff)
 (; benchmarkgroup, benchmarkconfig) = results
 reconstructed = Dict("context" => context,
-                     "suite" => benchmarkgroup,
-                     "config" => benchmarkconfig)
+    "suite" => benchmarkgroup,
+    "config" => benchmarkconfig)
 put("https://benchmark-data.tansongchen.workers.dev/TaylorDiff.jl";
     body = json(reconstructed))

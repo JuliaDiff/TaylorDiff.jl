@@ -19,7 +19,7 @@ function derivative end
 end
 
 @inline function derivative(f, x::V, l::V,
-                            order::Int64) where {V <: AbstractArray{<:Number, 1}}
+    order::Int64) where {V <: AbstractArray{<:Number, 1}}
     derivative(f, x, l, Val{order + 1}())
 end
 
@@ -32,7 +32,7 @@ end
 make_taylor(t0::T, t1::T, ::Val{N}) where {T, N} = TaylorScalar{T, N}(t0, t1)
 
 @inline function derivative(f, x::V, l::V,
-                            vN::Val{N}) where {V <: AbstractArray{<:Number, 1}, N}
+    vN::Val{N}) where {V <: AbstractArray{<:Number, 1}, N}
     t = map((t0, t1) -> make_taylor(t0, t1, vN), x, l) # i.e. map(TaylorScalar{T, N}, x, l)
     return extract_derivative(f(t), N)
 end

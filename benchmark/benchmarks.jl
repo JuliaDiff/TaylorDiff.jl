@@ -15,6 +15,6 @@ scalar = create_benchmark_scalar_function(sin, 0.1)
 mlp = create_benchmark_mlp((2, 16), [2.0, 3.0], [1.0, 1.0])
 
 const SUITE = BenchmarkGroup("scalar" => scalar,
-                             "mlp" => mlp,
-                             "taylor_expansion" => taylor_expansion,
-                             "pinn" => pinn)
+    "mlp" => mlp,
+    "taylor_expansion" => taylor_expansion,
+    "pinn" => pinn)
