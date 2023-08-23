@@ -10,7 +10,7 @@ using HTTP: put
 
 include("helper.jl")
 
-context = provide_context(Buildkite())
+context = provide_context(Dummy())
 results = benchmarkpkg(TaylorDiff)
 (; benchmarkgroup, benchmarkconfig) = results
 reconstructed = Dict("context" => context,

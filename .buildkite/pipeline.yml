@@ -3,7 +3,7 @@ steps:
     key: "test"
     plugins:
       - JuliaCI/julia#v1:
-          version: "1.8"
+          version: "1.9"
       - JuliaCI/julia-test#v1:
           coverage: false
     agents:
@@ -17,7 +17,7 @@ steps:
     command: "julia --project=benchmark benchmark/runbenchmarks.jl"
     plugins:
       - JuliaCI/julia#v1:
-          version: "1.8"
+          version: "1.9"
     agents:
       os: "linux"
       queue: "juliaecosystem"
