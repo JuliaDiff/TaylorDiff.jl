@@ -2,7 +2,7 @@ using Zygote, LinearAlgebra
 
 @testset "Zygote for mixed derivative" begin
     some_number = 0.7
-    some_numbers = [0.3 0.4 2.0;]
+    some_numbers = [0.3 0.4 0.1;]
     for f in (exp, log, sqrt, sin, asin, sinh, asinh)
         @test gradient(x -> derivative(f, x, 2), some_number)[1] ≈
               derivative(f, some_number, 3)
