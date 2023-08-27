@@ -29,9 +29,8 @@ end
     derivative(f, x, l, Val{order + 1}())
 end
 
-@inline function derivative(f, x::M, l::V,
-    order::Int64) where {M <: AbstractMatrix{<:Number}, V <: AbstractVector{<:Number}}
-    @info "test"
+@inline function derivative(f, x::M, l::L,
+    order::Int64) where {M <: AbstractMatrix{<:Number}, L <: AbstractVector{<:Number}}
     mapcols(u -> derivative(f, u, l, order), x)
 end
 
