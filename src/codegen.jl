@@ -26,7 +26,7 @@ using SymbolicUtils: BasicSymbolic, Pow
 @scalar_rule asech(x::BasicSymbolic) inv(x * -sqrt(1 - x^2))
 @scalar_rule asinh(x::BasicSymbolic) inv(sqrt(x^2 + 1))
 @scalar_rule atanh(x::BasicSymbolic) inv(1 - x^2)
-@scalar_rule erf(x::BasicSymbolic) exp(- x^2)*(2/sqrt(pi))
+@scalar_rule erf(x::BasicSymbolic) exp(-x^2)*(2 / sqrt(pi))
 
 dummy = (NoTangent(), 1)
 @syms t₁
@@ -34,8 +34,8 @@ for func in (+, -, deg2rad, rad2deg,
     sinh, cosh, tanh,
     asin, acos, atan, asec, acsc, acot,
     log, log10, log1p, log2,
-    asinh, acosh, atanh, asech, acsch, 
-	acoth, erf)
+    asinh, acosh, atanh, asech, acsch,
+    acoth, erf)
     F = typeof(func)
     # base case
     @eval function (op::$F)(t::TaylorScalar{T, 2}) where {T}
