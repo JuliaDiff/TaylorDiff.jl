@@ -11,7 +11,7 @@ using Zygote, LinearAlgebra
               diagm(derivative_result)
     end
 
-    some_matrix = [0.7; 0.1;; 0.4; 0.2]
+    some_matrix = [0.7 0.1; 0.4 0.2]
     f = x -> sum(tanh.(x), dims = 1)
     dfdx1(m, x) = derivative(u -> sum(m(u)), x, [1.0, 0.0], 1)
     dfdx2(m, x) = derivative(u -> sum(m(u)), x, [0.0, 1.0], 1)
