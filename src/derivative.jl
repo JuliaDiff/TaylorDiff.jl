@@ -29,8 +29,8 @@ end
     derivative(f, x, l, Val{order + 1}())
 end
 
-@inline function derivative(f, x::M, l::L,
-    order::Int64) where {M <: AbstractMatrix{<:Number}, L <: AbstractVector{<:Number}}
+@inline function derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T},
+    order::Int64) where {T <: Number}
     mapcols(u -> derivative(f, u, l, order), x)
 end
 
@@ -39,7 +39,7 @@ end
     return extract_derivative(f(t), N)
 end
 
-@inline function derivative(f, x::M, ::Val{N}) where {M <: AbstractMatrix{<:Number}, N}
+@inline function derivative(f, x::AbstractMatrix{<:Number}, ::Val{N}) where {N}
     mapcols(u -> derivative(f, u[1], N), x)
 end
 
@@ -52,7 +52,7 @@ make_taylor(t0::T, t1::S, ::Val{N}) where {T, S, N} = TaylorScalar{T, N}(t0, T(t
     return extract_derivative(f(t), N)
 end
 
-@inline function derivative(f, x::M, l::V,
-    vN::Val{N}) where {M <: AbstractMatrix{<:Number}, V <: AbstractVector{<:Number}, N}
+@inline function derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T},
+    vN::Val{N}) where {T <: Number, N}
     mapcols(u -> derivative(f, u, l, vN), x)
 end
