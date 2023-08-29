@@ -19,8 +19,8 @@ function derivative end
     derivative(f, x, Val{order + 1}())
 end
 
-
-@inline function derivative(f, x::M, order::Int64) where {M <: AbstractMatrix{<:Number}}
+@inline function derivative(f, x::AbstractMatrix{<:Number}, order::Int64)
+    size(x)[1] != 1 && @warn "x is not a row vector."
     mapcols(u -> derivative(f, u[1], order), x)
 end
 
@@ -40,6 +40,7 @@ end
 end
 
 @inline function derivative(f, x::AbstractMatrix{<:Number}, ::Val{N}) where {N}
+    size(x)[1] != 1 && @warn "x is not a row vector."
     mapcols(u -> derivative(f, u[1], N), x)
 end
 
