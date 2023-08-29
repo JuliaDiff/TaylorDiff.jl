@@ -4,34 +4,29 @@ export derivative
 
 """
     derivative(f, x::T, order::Int64)
+    derivative(f, x::AbstractMatrix{T}, order::Int64)
     derivative(f, x::T, ::Val{N})
+    derivative(f, x::AbstractMatrix{T}, ::Val{N})
 
 Computes `order`-th derivative of `f` w.r.t. `x`.
 
-    derivative(f, x::Vector{T}, l::Vector{T}, order::Int64)
-    derivative(f, x::Vector{T}, l::Vector{T}, ::Val{N})
+    derivative(f, x::AbstractVector{T}, l::AbstractVector{T}, order::Int64)
+    derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T}, order::Int64)
+    derivative(f, x::AbstractVector{T}, l::AbstractVector{T}, ::Val{N})
+    derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T}, ::Val{N})
 
 Computes `order`-th directional derivative of `f` w.r.t. `x` in direction `l`.
 """
 function derivative end
 
-@inline function derivative(f, x::T, order::Int64) where {T <: Number}
+@inline function derivative(f, x::Union{T, AbstractMatrix{T}},
+    order::Int64) where {T <: Number}
     derivative(f, x, Val{order + 1}())
 end
 
-@inline function derivative(f, x::AbstractMatrix{<:Number}, order::Int64)
-    size(x)[1] != 1 && @warn "x is not a row vector."
-    mapcols(u -> derivative(f, u[1], order), x)
-end
-
-@inline function derivative(f, x::AbstractVector{T}, l::AbstractVector{S},
-    order::Int64) where {T <: Number, S <: Number}
+@inline function derivative(f, x::Union{AbstractVector{T}, AbstractMatrix{T}},
+    l::AbstractVector{S}, order::Int64) where {T <: Number, S <: Number}
     derivative(f, x, l, Val{order + 1}())
-end
-
-@inline function derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T},
-    order::Int64) where {T <: Number}
-    mapcols(u -> derivative(f, u, l, order), x)
 end
 
 @inline function derivative(f, x::T, ::Val{N}) where {T <: Number, N}
@@ -39,7 +34,7 @@ end
     return extract_derivative(f(t), N)
 end
 
-@inline function derivative(f, x::AbstractMatrix{<:Number}, ::Val{N}) where {N}
+@inline function derivative(f, x::AbstractMatrix{<:Number}, N::Val)
     size(x)[1] != 1 && @warn "x is not a row vector."
     mapcols(u -> derivative(f, u[1], N), x)
 end
