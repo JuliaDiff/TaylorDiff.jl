@@ -1,16 +1,21 @@
 {
-	"name": "TaylorDiff.jl Development Container",
-	"image": "ghcr.io/julia-vscode/julia-devcontainer",
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"julialang.language-julia",
-				"bungcip.better-toml"
-			]
-		}
-	},
-	"postCreateCommand": "julia -e 'using Pkg; Pkg.add([\"Revise\", \"TestEnv\", \"JuliaFormatter\"])'",
-	"hostRequirements": {
-		"cpus": 4
-	}
+  "name": "TaylorDiff.jl Development Container",
+  "image": "mcr.microsoft.com/devcontainers/base:jammy",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "julialang.language-julia",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/julialang/devcontainer-features/julia:1": {
+      "channel": "release"
+    }
+  },
+  "postCreateCommand": "julia .devcontainer/postcreate.jl",
+  "hostRequirements": {
+    "cpus": 4
+  }
 }
