@@ -1,5 +1,6 @@
 using ChainRulesCore
 using SpecialFunctions
+using IrrationalConstants: sqrtπ
 using SymbolicUtils, SymbolicUtils.Code
 using SymbolicUtils: BasicSymbolic, Pow
 
@@ -26,7 +27,7 @@ using SymbolicUtils: BasicSymbolic, Pow
 @scalar_rule asech(x::BasicSymbolic) inv(x * -sqrt(1 - x^2))
 @scalar_rule asinh(x::BasicSymbolic) inv(sqrt(x^2 + 1))
 @scalar_rule atanh(x::BasicSymbolic) inv(1 - x^2)
-@scalar_rule erf(x::BasicSymbolic) exp(-x^2)*(2 / sqrt(pi))
+@scalar_rule erf(x::BasicSymbolic) exp(-x^2) * 2/sqrtπ
 
 dummy = (NoTangent(), 1)
 @syms t₁
