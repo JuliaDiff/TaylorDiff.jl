@@ -1,6 +1,6 @@
 import Base: abs, abs2
 import Base: exp, exp2, exp10, expm1, log, log2, log10, log1p, inv, sqrt, cbrt
-import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch
+import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch, sinpi, cospi
 import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, asech, acsch
 import Base: sinc, cosc
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
@@ -68,6 +68,9 @@ for func in (:sin, :cos)
         end
     end
 end
+
+@inline sinpi(t::TaylorScalar) = sin(π * t)
+@inline cospi(t::TaylorScalar) = cos(π * t)
 
 # Binary
 
