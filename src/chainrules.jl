@@ -6,7 +6,7 @@ function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
     mapreduce(*, +, value(a), value(b))
 end
 
-function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T <: Number}
+function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T}
     taylor_scalar_pullback(t̄) = NoTangent(), value(t̄)
     return TaylorScalar(v), taylor_scalar_pullback
 end
@@ -22,7 +22,7 @@ function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
-    i::Integer) where {N, T <: Number}
+    i::Integer) where {N, T}
     function extract_derivative_pullback(d̄)
         NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
         NoTangent()
@@ -31,7 +31,7 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-    t::AbstractVector{TaylorScalar{T, N}}) where {N, S <: Number, T}
+    t::AbstractVector{TaylorScalar{T, N}}) where {N, S, T}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
         x̂ = reinterpret(reshape, T, x̄)
@@ -41,17 +41,17 @@ function rrule(::typeof(*), A::AbstractMatrix{S},
     return A * t, gemv_pullback
 end
 
-@adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number}
+@adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T}
     project_v = ProjectTo(v)
     t + v, x̄ -> (x̄, project_v(x̄))
 end
 
-@adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
+@adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T}
     project_v = ProjectTo(v)
     v + t, x̄ -> (project_v(x̄), x̄)
 end
 
-(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
+(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T} = primal(dx)
 
 # Not-a-number patches
 

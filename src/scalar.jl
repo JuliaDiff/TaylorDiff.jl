@@ -17,7 +17,7 @@ struct TaylorScalar{T, N}
     value::NTuple{N, T}
 end
 
-TaylorOrNumber = Union{TaylorScalar, Number}
+TN = Union{TaylorScalar, Number}
 
 @inline TaylorScalar(xs::Vararg{T, N}) where {T, N} = TaylorScalar(xs)
 
