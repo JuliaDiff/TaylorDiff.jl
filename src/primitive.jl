@@ -110,37 +110,37 @@ end
 @generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Number, T, N}
     ex = quote
         v = value(t)
-        v1 = ^(v[1], n)
+        w11 = 1
+        u1 = ^(v[1], n)
     end
-    for i in 2:N
+    for k in 1:N
         ex = quote
             $ex
-            $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
-                                        $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
-                                       v[$(i + 1 - j)])
-                                     for j in 1:(i - 1)]...)) / v[1]
+            $(Symbol('p', k)) = ^(v[1], n - $(k - 1))
         end
-    end
-    ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
-    return :(@inbounds $ex)
-end
-
-@generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Integer, T, N}
-    # TODO: optimize for small powers
-    ex = quote
-        v = value(t)
-        v1 = ^(v[1], n)
     end
     for i in 2:N
+        subex = quote
+            $(Symbol('w', i, 1)) = 0
+        end
+        for k in 2:i
+            subex = quote
+                $subex
+                $(Symbol('w', i, k)) = +($([:((n * $(binomial(i - 2, j - 1)) -
+                                               $(binomial(i - 2, j - 2))) *
+                                              $(Symbol('w', j, k - 1)) *
+                                              v[$(i + 1 - j)])
+                                            for j in (k - 1):(i - 1)]...))
+            end
+        end
         ex = quote
             $ex
-            $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
-                                        $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
-                                       v[$(i + 1 - j)])
-                                     for j in 1:(i - 1)]...)) / v[1]
+            $subex
+            $(Symbol('u', i)) = +($([:($(Symbol('w', i, k)) * $(Symbol('p', k)))
+                                     for k in 2:i]...))
         end
     end
-    ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
+    ex = :($ex; TaylorScalar($([Symbol('u', i) for i in 1:N]...)))
     return :(@inbounds $ex)
 end
 
