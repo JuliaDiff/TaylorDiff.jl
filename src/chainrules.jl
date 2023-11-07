@@ -41,6 +41,17 @@ function rrule(::typeof(*), A::AbstractMatrix{S},
     return A * t, gemv_pullback
 end
 
+function rrule(::typeof(*), A::AbstractMatrix{S},
+    B::AbstractMatrix{TaylorScalar{T, N}}) where {N, S, T}
+    project_A = ProjectTo(A)
+    project_B = ProjectTo(B)
+    function gemm_pullback(x̄)
+        X̄ = unthunk(x̄)
+        NoTangent(), @thunk(project_A(X̄ * transpose(B))), @thunk(project_B(transpose(A) * X̄))
+    end
+    return A * B, gemm_pullback
+end
+
 @adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T}
     project_v = ProjectTo(v)
     t + v, x̄ -> (x̄, project_v(x̄))
