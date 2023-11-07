@@ -61,5 +61,6 @@ end
 
 @inline function derivative(f, x::AbstractMatrix{T}, l::AbstractVector{S},
     vN::Val{N}) where {T <: TN, S <: TN, N}
-    mapcols(u -> derivative(f, u, l, vN), x)
+    t = make_taylor.(x, l, vN)
+    return extract_derivative.(f(t), N)
 end
