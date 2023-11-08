@@ -148,7 +148,7 @@ end
 end
 
 @generated function raise(f::T, df::TaylorScalar{T, M},
-    t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
+        t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
     return quote
         $(Expr(:meta, :inline))
         vdf, vt = value(df), value(t)
@@ -162,7 +162,7 @@ end
 raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Number, T, N} = df * t
 
 @generated function raiseinv(f::T, df::TaylorScalar{T, M},
-    t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
+        t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
     ex = quote
         vdf, vt = value(df), value(t)
         v1 = vt[2] / vdf[1]

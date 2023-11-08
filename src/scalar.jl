@@ -58,7 +58,7 @@ end
 @inline value(t::TaylorScalar) = t.value
 @inline extract_derivative(t::TaylorScalar, i::Integer) = t.value[i]
 @inline function extract_derivative(v::AbstractArray{T},
-    i::Integer) where {T <: TaylorScalar}
+        i::Integer) where {T <: TaylorScalar}
     map(t -> extract_derivative(t, i), v)
 end
 @inline extract_derivative(r, i::Integer) = false
@@ -73,7 +73,7 @@ adjoint(t::TaylorScalar) = t
 conj(t::TaylorScalar) = t
 
 function promote_rule(::Type{TaylorScalar{T, N}},
-    ::Type{S}) where {T, S, N}
+        ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
 

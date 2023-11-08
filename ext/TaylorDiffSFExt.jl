@@ -8,7 +8,7 @@ using ChainRules, ChainRulesCore
 
 dummy = (NoTangent(), 1)
 @variables z
-for func in (erf, )
+for func in (erf,)
     F = typeof(func)
     # base case
     @eval function (op::$F)(t::TaylorScalar{T, 2}) where {T}
