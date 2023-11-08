@@ -46,7 +46,7 @@ make_taylor(t0::T, t1::S, ::Val{N}) where {T, S, N} = TaylorScalar{T, N}(t0, T(t
 end
 
 @inline function derivative(f, x::AbstractVector{T}, l::AbstractVector{S},
-    vN::Val{N}) where {T <: TN, S <: TN, N}
+        vN::Val{N}) where {T <: TN, S <: TN, N}
     t = map((t0, t1) -> make_taylor(t0, t1, vN), x, l)
     # equivalent to map(TaylorScalar{T, N}, x, l)
     return extract_derivative(f(t), N)
@@ -61,7 +61,7 @@ end
 end
 
 @inline function derivative(f, x::AbstractMatrix{T}, l::AbstractVector{S},
-    vN::Val{N}) where {T <: TN, S <: TN, N}
+        vN::Val{N}) where {T <: TN, S <: TN, N}
     t = make_taylor.(x, l, vN)
     return extract_derivative.(f(t), N)
 end
