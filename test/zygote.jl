@@ -6,15 +6,15 @@ using Zygote, LinearAlgebra
     for f in (exp, log, sqrt, sin, asin, sinh, asinh)
         @test gradient(x -> derivative(f, x, 2), some_number)[1] ≈
               derivative(f, some_number, 3)
-        derivative_result = vec(derivative(f, some_numbers, 3))
-        @test Zygote.jacobian(x -> derivative(f, x, 2), some_numbers)[1] ≈
+        derivative_result = vec(derivative.(f, some_numbers, 3))
+        @test Zygote.jacobian(x -> derivative.(f, x, 2), some_numbers)[1] ≈
               diagm(derivative_result)
     end
 
     some_matrix = [0.7 0.1; 0.4 0.2]
     f = x -> sum(tanh.(x), dims = 1)
-    dfdx1(m, x) = derivative(u -> sum(m(u)), x, [1.0, 0.0], 1)
-    dfdx2(m, x) = derivative(u -> sum(m(u)), x, [0.0, 1.0], 1)
+    dfdx1(m, x) = derivative(m, x, [1.0, 0.0], 1)
+    dfdx2(m, x) = derivative(m, x, [0.0, 1.0], 1)
     res(m, x) = dfdx1(m, x) .+ 2 * dfdx2(m, x)
     grads = Zygote.gradient(some_matrix) do x
         sum(res(f, x))

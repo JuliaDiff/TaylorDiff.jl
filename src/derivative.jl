@@ -2,24 +2,25 @@
 export derivative
 
 """
-    derivative(f, x::T, order::Int64)
+    derivative(f, x, order::Int64)
+    derivative(f, x, l, order::Int64)
+
+Wrapper functions for converting order from a number to a type. Actual APIs are detailed below:
+
     derivative(f, x::T, ::Val{N})
 
 Computes `order`-th derivative of `f` w.r.t. scalar `x`.
 
-    derivative(f, x::AbstractVector{T}, l::AbstractVector{T}, order::Int64)
     derivative(f, x::AbstractVector{T}, l::AbstractVector{T}, ::Val{N})
 
 Computes `order`-th directional derivative of `f` w.r.t. vector `x` in direction `l`.
 
-    derivative(f, x::AbstractMatrix{T}, order::Int64)
     derivative(f, x::AbstractMatrix{T}, ::Val{N})
-    derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T}, order::Int64)
     derivative(f, x::AbstractMatrix{T}, l::AbstractVector{T}, ::Val{N})
 
-Shorthand notations for multiple calculations.
-For a M-by-N matrix, calculate the directional derivative for each column.
-For a 1-by-N matrix (row vector), calculate the derivative for each scalar.
+Batch mode derivative / directional derivative calculations, where each column of `x` represents a scalar or a vector. `f` is expected to accept matrices as input.
+- For a M-by-N matrix, calculate the directional derivative for each column.
+- For a 1-by-N matrix (row vector), calculate the derivative for each scalar.
 """
 function derivative end
 
@@ -55,7 +56,7 @@ end
 
 @inline function derivative(f, x::AbstractMatrix{T}, vN::Val{N}) where {T <: TN, N}
     size(x)[1] != 1 && @warn "x is not a row vector."
-    t = make_taylor.(x, one(N), vN)
+    t = make_taylor.(x, one(T), vN)
     return extract_derivative.(f(t), N)
 end
 
