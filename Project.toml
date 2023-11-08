@@ -21,7 +21,6 @@ TaylorDiffSFExt = ["SpecialFunctions"]
 ChainRules = "1"
 ChainRulesCore = "1"
 ChainRulesOverloadGeneration = "0.1"
-IrrationalConstants = "0.2"
 SpecialFunctions = "2"
 SymbolicUtils = "1"
 Symbolics = "5"
