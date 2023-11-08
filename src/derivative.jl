@@ -1,5 +1,4 @@
 
-using SliceMap
 export derivative
 
 """
@@ -56,7 +55,8 @@ end
 
 @inline function derivative(f, x::AbstractMatrix{T}, vN::Val{N}) where {T <: TN, N}
     size(x)[1] != 1 && @warn "x is not a row vector."
-    mapcols(u -> derivative(f, u[1], vN), x)
+    t = make_taylor.(x, one(N), vN)
+    return extract_derivative.(f(t), N)
 end
 
 @inline function derivative(f, x::AbstractMatrix{T}, l::AbstractVector{S},
