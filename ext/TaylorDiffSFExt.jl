@@ -1,17 +1,14 @@
-using ChainRules
-using ChainRulesCore
+module TaylorDiffSFExt
+using TaylorDiff, SpecialFunctions
 using Symbolics: @variables
 using SymbolicUtils, SymbolicUtils.Code
 using SymbolicUtils: Pow
+using TaylorDiff: value, raise
+using ChainRules, ChainRulesCore
 
 dummy = (NoTangent(), 1)
 @variables z
-for func in (+, -, deg2rad, rad2deg,
-    sinh, cosh, tanh,
-    asin, acos, atan, asec, acsc, acot,
-    log, log10, log1p, log2,
-    asinh, acosh, atanh, asech, acsch,
-    acoth)
+for func in (erf, )
     F = typeof(func)
     # base case
     @eval function (op::$F)(t::TaylorScalar{T, 2}) where {T}
@@ -31,4 +28,6 @@ for func in (+, -, deg2rad, rad2deg,
             $$raiser($f(value(t)[1]), df, t)
         end
     end
+end
+
 end
