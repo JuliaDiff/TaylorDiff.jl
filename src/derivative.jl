@@ -38,7 +38,7 @@ end
 # Core APIs
 
 # Added to help Zygote infer types
-make_taylor(t0::T, t1::S, ::Val{N}) where {T, S, N} = TaylorScalar{T, N}(t0, T(t1))
+make_taylor(t0::T, t1::S, ::Val{N}) where {T, S, N} = TaylorScalar{T, N}(t0, convert(T, t1))
 
 @inline function derivative(f, x::T, ::Val{N}) where {T <: TN, N}
     t = TaylorScalar{T, N}(x, one(x))

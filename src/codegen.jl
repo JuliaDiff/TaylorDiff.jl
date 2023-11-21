@@ -11,7 +11,8 @@ for func in (+, -, deg2rad, rad2deg,
     asin, acos, atan, asec, acsc, acot,
     log, log10, log1p, log2,
     asinh, acosh, atanh, asech, acsch,
-    acoth)
+    acoth, 
+    abs, sign)
     F = typeof(func)
     # base case
     @eval function (op::$F)(t::TaylorScalar{T, 2}) where {T}
