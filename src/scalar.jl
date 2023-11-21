@@ -88,3 +88,5 @@ for op in (:+, :-, :*, :/)
     @eval @inline $op(a::Number, b::TaylorScalar) = $op(promote(a, b)...)
 end
 transpose(t::TaylorScalar) = t
+
+Base.AbstractFloat(x::TaylorScalar{T, N}) where {T, N} = TaylorScalar{Float64, N}(convert(NTuple{N, Float64}, x.value))
