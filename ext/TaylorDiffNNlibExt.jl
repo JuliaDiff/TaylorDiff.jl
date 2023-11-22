@@ -4,7 +4,6 @@ using TaylorDiff
 import NNlib: oftf
 import NNlib: sigmoid_fast, tanh_fast, rrelu, leakyrelu
 
-println("revise!")
 
 @inline sigmoid_fast(t::TaylorScalar) = one(t) / (one(t) + exp(-t))
 
