@@ -89,4 +89,6 @@ for op in (:+, :-, :*, :/)
 end
 transpose(t::TaylorScalar) = t
 
-Base.AbstractFloat(x::TaylorScalar{T, N}) where {T, N} = TaylorScalar{Float64, N}(convert(NTuple{N, Float64}, x.value))
+function Base.AbstractFloat(x::TaylorScalar{T, N}) where {T, N}
+    TaylorScalar{Float64, N}(convert(NTuple{N, Float64}, x.value))
+end
