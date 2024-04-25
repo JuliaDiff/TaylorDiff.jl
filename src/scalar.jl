@@ -62,6 +62,10 @@ end
     map(t -> extract_derivative(t, i), v)
 end
 @inline extract_derivative(r, i::Integer) = false
+@inline function extract_derivative!(result::AbstractArray, v::AbstractArray{T},
+        i::Integer) where {T <: TaylorScalar}
+    map!(t -> extract_derivative(t, i), result, v)
+end
 @inline primal(t::TaylorScalar) = extract_derivative(t, 1)
 
 @inline zero(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(zero(T))
