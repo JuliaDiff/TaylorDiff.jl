@@ -42,11 +42,11 @@ function derivatives end
 # Core APIs
 
 # Added to help Zygote infer types
-@inline function make_seed(x::T, l::S, ::Val{N}) where {T <: TN, S <: TN, N}
+@inline function make_seed(x::T, l::S, ::Val{N}) where {T <: Real, S <: Real, N}
     TaylorScalar{T, N}(x, convert(T, l))
 end
 
-@inline function make_seed(x::AbstractArray{T}, l, vN::Val{N}) where {T <: TN, N}
+@inline function make_seed(x::AbstractArray{T}, l, vN::Val{N}) where {T <: Real, N}
     broadcast(make_seed, x, l, vN)
 end
 

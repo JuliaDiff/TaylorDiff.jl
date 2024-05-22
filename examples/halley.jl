@@ -4,7 +4,7 @@ using TaylorDiff
 using LinearAlgebra
 using LinearSolve
 
-function newton(f, x0, p; tol=1e-10, maxiter=100)
+function newton(f, x0, p; tol = 1e-10, maxiter = 100)
     x = x0
     for i in 1:maxiter
         fx = f(x, p)
@@ -22,7 +22,7 @@ function newton(f, x0, p; tol=1e-10, maxiter=100)
     return x
 end
 
-function halley(f, x0, p; tol=1e-10, maxiter=100)
+function halley(f, x0, p; tol = 1e-10, maxiter = 100)
     x = x0
     for i in 1:maxiter
         fx = f(x, p)
