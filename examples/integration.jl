@@ -17,10 +17,11 @@ eqsdiff: RHS
 t: constructed by TaylorScalar{T, N}(t0, 1), which means unit perturbation
 x0: initial value
 """
-function jetcoeffs_taylordiff(eqsdiff::Function, t::TaylorScalar{T, N}, x0::U, params) where
-    {T<:Real, U<:Number, N}
+function jetcoeffs_taylordiff(eqsdiff::Function, t::TaylorScalar{T, N}, x0::U,
+        params) where
+        {T <: Real, U <: Number, N}
     x = TaylorScalar{U, N}(x0) # x.values[1] is defined, others are 0
-    for index in 1:N-1 # computes x.values[index + 1]
+    for index in 1:(N - 1) # computes x.values[index + 1]
         f = eqsdiff(x, params, t)
         df = TaylorDiff.extract_derivative(f, index)
         x = update_coefficient(x, index + 1, df)
@@ -35,11 +36,13 @@ eqsdiff!: RHS, in non-allocation form
 t: constructed by TaylorScalar{T, N}(t0, 1), which means unit perturbation
 x0: initial value
 """
-function jetcoeffs_array_taylordiff(eqsdiff!::Function, t::TaylorScalar{T, N}, x0::AbstractArray{U, D}, params) where
-    {T<:Real, U<:Number, N, D}
+function jetcoeffs_array_taylordiff(
+        eqsdiff!::Function, t::TaylorScalar{T, N}, x0::AbstractArray{U, D},
+        params) where
+        {T <: Real, U <: Number, N, D}
     x = map(TaylorScalar{U, N}, x0) # x.values[1] is defined, others are 0
     f = similar(x)
-    for index in 1:N-1 # computes x.values[index + 1]
+    for index in 1:(N - 1) # computes x.values[index + 1]
         eqsdiff!(f, x, params, t)
         df = TaylorDiff.extract_derivative.(f, index)
         x = update_coefficient.(x, index + 1, df)

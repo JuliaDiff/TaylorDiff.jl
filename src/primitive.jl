@@ -74,9 +74,13 @@ end
 
 # Binary
 
+const AMBIGUOUS_TYPES = (AbstractFloat, Irrational, Integer, Rational, Real, RoundingMode)
+
 for op in [:>, :<, :(==), :(>=), :(<=)]
-    @eval @inline $op(a::Number, b::TaylorScalar) = $op(a, value(b)[1])
-    @eval @inline $op(a::TaylorScalar, b::Number) = $op(value(a)[1], b)
+    for R in AMBIGUOUS_TYPES
+        @eval @inline $op(a::TaylorScalar, b::$R) = $op(value(a)[1], b)
+        @eval @inline $op(a::$R, b::TaylorScalar) = $op(a, value(b)[1])
+    end
     @eval @inline $op(a::TaylorScalar, b::TaylorScalar) = $op(value(a)[1], value(b)[1])
 end
 
@@ -110,41 +114,43 @@ end
     return :(@inbounds $ex)
 end
 
-@generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Number, T, N}
-    ex = quote
-        v = value(t)
-        w11 = 1
-        u1 = ^(v[1], n)
-    end
-    for k in 1:N
+for R in (Integer, Real)
+    @eval @generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: $R, T, N}
         ex = quote
-            $ex
-            $(Symbol('p', k)) = ^(v[1], n - $(k - 1))
+            v = value(t)
+            w11 = 1
+            u1 = ^(v[1], n)
         end
-    end
-    for i in 2:N
-        subex = quote
-            $(Symbol('w', i, 1)) = 0
-        end
-        for k in 2:i
-            subex = quote
-                $subex
-                $(Symbol('w', i, k)) = +($([:((n * $(binomial(i - 2, j - 1)) -
-                                               $(binomial(i - 2, j - 2))) *
-                                              $(Symbol('w', j, k - 1)) *
-                                              v[$(i + 1 - j)])
-                                            for j in (k - 1):(i - 1)]...))
+        for k in 1:N
+            ex = quote
+                $ex
+                $(Symbol('p', k)) = ^(v[1], n - $(k - 1))
             end
         end
-        ex = quote
-            $ex
-            $subex
-            $(Symbol('u', i)) = +($([:($(Symbol('w', i, k)) * $(Symbol('p', k)))
-                                     for k in 2:i]...))
+        for i in 2:N
+            subex = quote
+                $(Symbol('w', i, 1)) = 0
+            end
+            for k in 2:i
+                subex = quote
+                    $subex
+                    $(Symbol('w', i, k)) = +($([:((n * $(binomial(i - 2, j - 1)) -
+                                                   $(binomial(i - 2, j - 2))) *
+                                                  $(Symbol('w', j, k - 1)) *
+                                                  v[$(i + 1 - j)])
+                                                for j in (k - 1):(i - 1)]...))
+                end
+            end
+            ex = quote
+                $ex
+                $subex
+                $(Symbol('u', i)) = +($([:($(Symbol('w', i, k)) * $(Symbol('p', k)))
+                                         for k in 2:i]...))
+            end
         end
+        ex = :($ex; TaylorScalar($([Symbol('u', i) for i in 1:N]...)))
+        return :(@inbounds $ex)
     end
-    ex = :($ex; TaylorScalar($([Symbol('u', i) for i in 1:N]...)))
-    return :(@inbounds $ex)
 end
 
 @generated function raise(f::T, df::TaylorScalar{T, M},

@@ -5,6 +5,20 @@ import Base: convert, promote_rule
 export TaylorScalar
 
 """
+    TaylorDiff.can_taylor(V::Type)
+
+Determines whether the type V is allowed as the scalar type in a
+Dual. By default, only `<:Real` types are allowed.
+"""
+can_taylorize(::Type{<:Real}) = true
+can_taylorize(::Type) = false
+
+@noinline function throw_cannot_taylorize(V::Type)
+    throw(ArgumentError("Cannot create a Taylor polynomial over scalar type $V." *
+                        " If the type behaves as a scalar, define TaylorDiff.can_taylorize(::Type{$V}) = true."))
+end
+
+"""
     TaylorScalar{T, N}
 
 Representation of Taylor polynomials.
@@ -13,20 +27,23 @@ Representation of Taylor polynomials.
 
 - `value::NTuple{N, T}`: i-th element of this stores the (i-1)-th derivative
 """
-struct TaylorScalar{T, N}
+struct TaylorScalar{T, N} <: Real
     value::NTuple{N, T}
+    function TaylorScalar{T, N}(value::NTuple{N, T}) where {T, N}
+        can_taylorize(T) || throw_cannot_taylorize(T)
+        new{T, N}(value)
+    end
 end
 
-TN = Union{TaylorScalar, Number}
-
-@inline TaylorScalar(xs::Vararg{T, N}) where {T, N} = TaylorScalar(xs)
+TaylorScalar(value::NTuple{N, T}) where {T, N} = TaylorScalar{T, N}(value)
+TaylorScalar(value::Vararg{T, N}) where {T, N} = TaylorScalar{T, N}(value)
 
 """
     TaylorScalar{T, N}(x::T) where {T, N}
 
 Construct a Taylor polynomial with zeroth order coefficient.
 """
-@generated function TaylorScalar{T, N}(x::T) where {T, N}
+@generated function TaylorScalar{T, N}(x::S) where {T, S <: Real, N}
     return quote
         $(Expr(:meta, :inline))
         TaylorScalar((T(x), $(zeros(T, N - 1)...)))
@@ -38,7 +55,7 @@ end
 
 Construct a Taylor polynomial with zeroth and first order coefficient, acting as a seed.
 """
-@generated function TaylorScalar{T, N}(x::T, d::T) where {T, N}
+@generated function TaylorScalar{T, N}(x::S, d::S) where {T, S <: Real, N}
     return quote
         $(Expr(:meta, :inline))
         TaylorScalar((T(x), T(d), $(zeros(T, N - 2)...)))
@@ -68,30 +85,10 @@ end
 end
 @inline primal(t::TaylorScalar) = extract_derivative(t, 1)
 
-@inline zero(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(zero(T))
-@inline one(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(one(T))
-@inline zero(::TaylorScalar{T, N}) where {T, N} = zero(TaylorScalar{T, N})
-@inline one(::TaylorScalar{T, N}) where {T, N} = one(TaylorScalar{T, N})
-
-adjoint(t::TaylorScalar) = t
-conj(t::TaylorScalar) = t
-
 function promote_rule(::Type{TaylorScalar{T, N}},
         ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
-
-# Number-like convention (I patched them after removing <: Number)
-
-convert(::Type{TaylorScalar{T, N}}, x::TaylorScalar{T, N}) where {T, N} = x
-function convert(::Type{TaylorScalar{T, N}}, x::S) where {T, S, N}
-    TaylorScalar{T, N}(convert(T, x))
-end
-for op in (:+, :-, :*, :/)
-    @eval @inline $op(a::TaylorScalar, b::Number) = $op(promote(a, b)...)
-    @eval @inline $op(a::Number, b::TaylorScalar) = $op(promote(a, b)...)
-end
-transpose(t::TaylorScalar) = t
 
 function Base.AbstractFloat(x::TaylorScalar{T, N}) where {T, N}
     TaylorScalar{Float64, N}(convert(NTuple{N, Float64}, x.value))
