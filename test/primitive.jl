@@ -2,7 +2,7 @@ using FiniteDifferences
 
 @testset "No derivative or linear" begin
     some_number, another_number = 1.9, 2.6
-    for f in (+, -, zero, one, adjoint, conj, deg2rad, rad2deg), order in (2,)
+    for f in (+, -, zero, one, adjoint, conj, deg2rad, rad2deg, abs, sign), order in (2,)
         @test derivative(f, some_number, order) ≈ 0.0
     end
     for f in (+, -, <, <=, >, >=, ==), order in (2,)

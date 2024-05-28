@@ -151,7 +151,12 @@ for R in (Integer, Real)
         ex = :($ex; TaylorScalar($([Symbol('u', i) for i in 1:N]...)))
         return :(@inbounds $ex)
     end
+    @eval function ^(a::S, t::TaylorScalar{T, N}) where {S <: $R, T, N}
+        exp(t * log(a))
+    end
 end
+
+^(t::TaylorScalar, s::TaylorScalar) = exp(s * log(t))
 
 @generated function raise(f::T, df::TaylorScalar{T, M},
         t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N

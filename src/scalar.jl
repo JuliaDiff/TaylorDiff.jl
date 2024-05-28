@@ -90,6 +90,21 @@ function promote_rule(::Type{TaylorScalar{T, N}},
     TaylorScalar{promote_type(T, S), N}
 end
 
-function Base.AbstractFloat(x::TaylorScalar{T, N}) where {T, N}
-    TaylorScalar{Float64, N}(convert(NTuple{N, Float64}, x.value))
+function (::Type{F})(x::TaylorScalar{T, N}) where {T, N, F <: AbstractFloat}
+    F(primal(x))
+end
+
+function Base.nextfloat(x::TaylorScalar{T, N}) where {T, N}
+    TaylorScalar{T, N}(ntuple(i -> i == 1 ? nextfloat(value(x)[i]) : value(x)[i], N))
+end
+
+function Base.prevfloat(x::TaylorScalar{T, N}) where {T, N}
+    TaylorScalar{T, N}(ntuple(i -> i == 1 ? prevfloat(value(x)[i]) : value(x)[i], N))
+end
+
+const UNARY_PREDICATES = Symbol[
+    :isinf, :isnan, :isfinite, :iseven, :isodd, :isreal, :isinteger]
+
+for pred in UNARY_PREDICATES
+    @eval Base.$(pred)(x::TaylorScalar) = $(pred)(primal(x))
 end
