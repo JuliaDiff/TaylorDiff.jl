@@ -78,7 +78,7 @@ accum_sum(xs::AbstractArray{T}; dims = :) where {T <: TaylorScalar} = sum(xs, di
 
 TaylorNumeric{T <: TaylorScalar} = Union{T, AbstractArray{<:T}}
 
-@adjoint function broadcasted(::typeof(+), xs::Union{Numeric, TaylorNumeric}...)
+@adjoint function broadcasted(::typeof(+), xs::TaylorNumeric...)
     broadcast(+, xs...), ȳ -> (nothing, map(x -> unbroadcast(x, ȳ), xs)...)
 end
 
