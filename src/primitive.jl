@@ -113,6 +113,8 @@ end
     ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
     return :(@inbounds $ex)
 end
+@inline *(a::TaylorScalar{T1, N}, b::TaylorScalar{T2, N}) where {T1,T2,N} = *(promote(a,b)...)
+@inline /(a::TaylorScalar{T1, N}, b::TaylorScalar{T2, N}) where {T1,T2,N} = *(promote(a,b)...)
 
 for R in (Integer, Real)
     @eval @generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: $R, T, N}
