@@ -10,10 +10,11 @@ using HTTP: put
 
 include("helper.jl")
 
-context = provide_context(Buildkite())
+context = provide_context(Dummy())
 results = benchmarkpkg(TaylorDiff)
 (; benchmarkgroup, benchmarkconfig) = results
 reconstructed = Dict("context" => context,
-                     "suite" => benchmarkgroup,
-                     "config" => benchmarkconfig)
-put("https://benchmark.tansongchen.com/TaylorDiff.jl"; body = json(reconstructed))
+    "suite" => benchmarkgroup,
+    "config" => benchmarkconfig)
+put("https://benchmark-data.tansongchen.workers.dev/TaylorDiff.jl";
+    body = json(reconstructed))

@@ -1,5 +1,5 @@
 function create_benchmark_mlp(mlp_conf::Tuple{Int, Int}, x::Vector{T},
-                              l::Vector{T}) where {T <: Number}
+        l::Vector{T}) where {T <: Number}
     input, hidden = mlp_conf
     W₁, W₂, b₁, b₂ = rand(hidden, input), rand(1, hidden), rand(hidden), rand(1)
     σ = exp
@@ -21,6 +21,6 @@ function create_benchmark_mlp(mlp_conf::Tuple{Int, Int}, x::Vector{T},
         taylordiff[index] = @benchmarkable derivative($mlp, $x, $l, $N)
     end
     return BenchmarkGroup(["vector"],
-                          "forwarddiff" => forwarddiff,
-                          "taylordiff" => taylordiff)
+        "forwarddiff" => forwarddiff,
+        "taylordiff" => taylordiff)
 end

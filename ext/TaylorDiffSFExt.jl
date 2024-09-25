@@ -1,27 +1,20 @@
-using ChainRules
-using ChainRulesCore
+module TaylorDiffSFExt
+using TaylorDiff, SpecialFunctions
 using Symbolics: @variables
 using SymbolicUtils, SymbolicUtils.Code
 using SymbolicUtils: Pow
-
-func_list = (
-    +, -, deg2rad, rad2deg,
-    sinh, cosh, tanh,
-    asin, acos, atan, asec, acsc, acot,
-    log, log10, log1p, log2,
-    asinh, acosh, atanh, asech, acsch,
-    acoth,
-    abs, sign)
+using TaylorDiff: value, raise
+using ChainRules, ChainRulesCore
 
 dummy = (NoTangent(), 1)
 @variables z
-for func in func_list
+# logerfc, logerfcx, erfinv, gamma, digamma, trigamma
+for func in (erf, erfc, erfcinv, erfcx, erfi)
     F = typeof(func)
     # base case
     @eval function (op::$F)(t::TaylorScalar{T, 2}) where {T}
         t0, t1 = value(t)
-        f0, f1 = frule((NoTangent(), t1), op, t0)
-        TaylorScalar{T, 2}(f0, zero_tangent(f0) + f1)
+        TaylorScalar{T, 2}(frule((NoTangent(), t1), op, t0))
     end
     der = frule(dummy, func, z)[2]
     term, raiser = der isa Pow && der.exp == -1 ? (der.base, raiseinv) : (der, raise)
@@ -32,9 +25,10 @@ for func in func_list
         quote
             $(Expr(:meta, :inline))
             z = TaylorScalar{T, N - 1}(t)
-            f0 = $f(value(t)[1])
-            df = zero_tangent(z) + $der_expr
-            $$raiser(f0, df, t)
+            df = $der_expr
+            $$raiser($f(value(t)[1]), df, t)
         end
     end
+end
+
 end

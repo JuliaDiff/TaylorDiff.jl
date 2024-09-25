@@ -1,6 +1,6 @@
 import Base: abs, abs2
 import Base: exp, exp2, exp10, expm1, log, log2, log10, log1p, inv, sqrt, cbrt
-import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch
+import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch, sinpi, cospi
 import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, asech, acsch
 import Base: sinc, cosc
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
@@ -62,13 +62,13 @@ for func in (:sin, :cos)
         end
         for i in 2:N
             ex = :($ex;
-                   $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) *
-                                              $(Symbol('c', j)) *
-                                              v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
+            $(Symbol('s', i)) = +($([:($(binomial(i - 2, j - 1)) *
+                                       $(Symbol('c', j)) *
+                                       v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
             ex = :($ex;
-                   $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) *
-                                              $(Symbol('s', j)) *
-                                              v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
+            $(Symbol('c', i)) = +($([:($(-binomial(i - 2, j - 1)) *
+                                       $(Symbol('s', j)) *
+                                       v[$(i + 1 - j)]) for j in 1:(i - 1)]...)))
         end
         if $(QuoteNode(func)) == :sin
             ex = :($ex; TaylorScalar($([Symbol('s', i) for i in 1:N]...)))
@@ -81,21 +81,18 @@ for func in (:sin, :cos)
     end
 end
 
+@inline sinpi(t::TaylorScalar) = sin(π * t)
+@inline cospi(t::TaylorScalar) = cos(π * t)
+
 # Binary
 
-@inline +(a::Number, b::TaylorScalar) = TaylorScalar((a + value(b)[1]), tail(value(b))...)
-@inline -(a::Number, b::TaylorScalar) = TaylorScalar((a - value(b)[1]), .-tail(value(b))...)
-@inline *(a::Number, b::TaylorScalar) = TaylorScalar((a .* value(b))...)
-@inline /(a::Number, b::TaylorScalar) = /(promote(a, b)...)
-
-@inline +(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] + b), tail(value(a))...)
-@inline -(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] - b), tail(value(a))...)
-@inline *(a::TaylorScalar, b::Number) = TaylorScalar((value(a) .* b)...)
-@inline /(a::TaylorScalar, b::Number) = TaylorScalar((value(a) ./ b)...)
+const AMBIGUOUS_TYPES = (AbstractFloat, Irrational, Integer, Rational, Real, RoundingMode)
 
 for op in [:>, :<, :(==), :(>=), :(<=)]
-    @eval @inline $op(a::Number, b::TaylorScalar) = $op(a, value(b)[1])
-    @eval @inline $op(a::TaylorScalar, b::Number) = $op(value(a)[1], b)
+    for R in AMBIGUOUS_TYPES
+        @eval @inline $op(a::TaylorScalar, b::$R) = $op(value(a)[1], b)
+        @eval @inline $op(a::$R, b::TaylorScalar) = $op(a, value(b)[1])
+    end
     @eval @inline $op(a::TaylorScalar, b::TaylorScalar) = $op(value(a)[1], value(b)[1])
 end
 
@@ -135,59 +132,66 @@ end
     *(promote(a, b)...)
 end
 
-@generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Number, T, N}
-    ex = quote
-        v = value(t)
-        v1 = ^(v[1], n)
-    end
-    for i in 2:N
+for R in (Integer, Real)
+    @eval @generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: $R, T, N}
         ex = quote
-            $ex
-            $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
-                                        $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
-                                       v[$(i + 1 - j)])
-                                     for j in 1:(i - 1)]...)) / v[1]
+            v = value(t)
+            w11 = 1
+            u1 = ^(v[1], n)
         end
+        for k in 1:N
+            ex = quote
+                $ex
+                $(Symbol('p', k)) = ^(v[1], n - $(k - 1))
+            end
+        end
+        for i in 2:N
+            subex = quote
+                $(Symbol('w', i, 1)) = 0
+            end
+            for k in 2:i
+                subex = quote
+                    $subex
+                    $(Symbol('w', i, k)) = +($([:((n * $(binomial(i - 2, j - 1)) -
+                                                   $(binomial(i - 2, j - 2))) *
+                                                  $(Symbol('w', j, k - 1)) *
+                                                  v[$(i + 1 - j)])
+                                                for j in (k - 1):(i - 1)]...))
+                end
+            end
+            ex = quote
+                $ex
+                $subex
+                $(Symbol('u', i)) = +($([:($(Symbol('w', i, k)) * $(Symbol('p', k)))
+                                         for k in 2:i]...))
+            end
+        end
+        ex = :($ex; TaylorScalar($([Symbol('u', i) for i in 1:N]...)))
+        return :(@inbounds $ex)
     end
-    ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
-    return :(@inbounds $ex)
+    @eval function ^(a::S, t::TaylorScalar{T, N}) where {S <: $R, T, N}
+        exp(t * log(a))
+    end
 end
 
-@generated function ^(t::TaylorScalar{T, N}, n::S) where {S <: Integer, T, N}
-    # TODO: optimize for small powers
-    ex = quote
-        v = value(t)
-        v1 = ^(v[1], n)
-    end
-    for i in 2:N
-        ex = quote
-            $ex
-            $(Symbol('v', i)) = +($([:((n * $(binomial(i - 2, j - 1)) -
-                                        $(binomial(i - 2, j - 2))) * $(Symbol('v', j)) *
-                                       v[$(i + 1 - j)])
-                                     for j in 1:(i - 1)]...)) / v[1]
-        end
-    end
-    ex = :($ex; TaylorScalar($([Symbol('v', i) for i in 1:N]...)))
-    return :(@inbounds $ex)
-end
+^(t::TaylorScalar, s::TaylorScalar) = exp(s * log(t))
 
 @generated function raise(f::T, df::TaylorScalar{T, M},
-                          t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
+        t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
     return quote
         $(Expr(:meta, :inline))
         vdf, vt = value(df), value(t)
         @inbounds TaylorScalar(f,
-                               $([:(+($([:($(binomial(i - 1, j - 1)) * vdf[$j] *
-                                           vt[$(i + 2 - j)]) for j in 1:i]...)))
-                                  for i in 1:M]...))
+            $([:(+($([:($(binomial(i - 1, j - 1)) * vdf[$j] *
+                        vt[$(i + 2 - j)]) for j in 1:i]...)))
+               for i in 1:M]...))
     end
 end
 
 raise(::T, df::S, t::TaylorScalar{T, N}) where {S <: Number, T, N} = df * t
 
 @generated function raiseinv(f::T, df::TaylorScalar{T, M},
-                             t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
+        t::TaylorScalar{T, N}) where {T, M, N} # M + 1 == N
     ex = quote
         vdf, vt = value(df), value(t)
         v1 = vt[2] / vdf[1]

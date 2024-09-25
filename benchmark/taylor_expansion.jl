@@ -13,8 +13,8 @@ p ./= sum(p)
 t_ts = Taylor1(eltype(p), m)
 t_td = TaylorScalar{eltype(p), m + 1}(0.0, 1.0)
 taylor_expansion = BenchmarkGroup(["scalar", "very-high-order"],
-                                  "taylorseries" => (@benchmarkable my_calculation($t_ts,
-                                                                                   $p, $α,
-                                                                                   $s)),
-                                  "taylordiff" => (@benchmarkable my_calculation($t_td, $p,
-                                                                                 $α, $s)))
+    "taylorseries" => (@benchmarkable my_calculation($t_ts,
+        $p, $α,
+        $s)),
+    "taylordiff" => (@benchmarkable my_calculation($t_td, $p,
+        $α, $s)))

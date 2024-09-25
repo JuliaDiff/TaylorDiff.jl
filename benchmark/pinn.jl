@@ -2,9 +2,9 @@ const input = 2
 const hidden = 16
 
 model = Chain(Dense(input => hidden, exp),
-              Dense(hidden => hidden, exp),
-              Dense(hidden => 1),
-              first)
+    Dense(hidden => hidden, exp),
+    Dense(hidden => 1),
+    first)
 trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x)
 
 x = rand(Float32, input)
@@ -26,10 +26,10 @@ function loss_by_taylordiff(model, x)
 end
 
 pinn_t = BenchmarkGroup("primal" => (@benchmarkable loss_by_taylordiff($model, $x)),
-                        "gradient" => (@benchmarkable gradient(loss_by_taylordiff, $model,
-                                                               $x)))
+    "gradient" => (@benchmarkable gradient(loss_by_taylordiff, $model,
+        $x)))
 pinn_f = BenchmarkGroup("primal" => (@benchmarkable loss_by_finitediff($model, $x)),
-                        "gradient" => (@benchmarkable gradient($loss_by_finitediff, $model,
-                                                               $x)))
+    "gradient" => (@benchmarkable gradient($loss_by_finitediff, $model,
+        $x)))
 pinn = BenchmarkGroup(["vector", "physical"], "taylordiff" => pinn_t,
-                      "finitediff" => pinn_f)
+    "finitediff" => pinn_f)

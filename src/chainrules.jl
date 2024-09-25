@@ -6,7 +6,7 @@ function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
     mapreduce(*, +, value(a), value(b))
 end
 
-function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T <: Number}
+function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T}
     taylor_scalar_pullback(t̄) = NoTangent(), value(t̄)
     return TaylorScalar(v), taylor_scalar_pullback
 end
@@ -22,7 +22,7 @@ function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
-               i::Integer) where {N, T <: Number}
+        i::Integer) where {N, T}
     function extract_derivative_pullback(d̄)
         NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
         NoTangent()
@@ -30,26 +30,41 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
     return extract_derivative(t, i), extract_derivative_pullback
 end
 
-function rrule(::typeof(*), A::Matrix{S},
-               t::Vector{TaylorScalar{T, N}}) where {N, S <: Number, T}
+function rrule(::typeof(*), A::AbstractMatrix{S},
+        t::AbstractVector{TaylorScalar{T, N}}) where {N, S, T}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
-        NoTangent(), @thunk(project_A(contract.(x̄, transpose(t)))), @thunk(transpose(A)*x̄)
+        x̂ = reinterpret(reshape, T, x̄)
+        t̂ = reinterpret(reshape, T, t)
+        NoTangent(), @thunk(project_A(transpose(x̂) * t̂)), @thunk(transpose(A)*x̄)
     end
     return A * t, gemv_pullback
 end
 
-@adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T <: Number}
+function rrule(::typeof(*), A::AbstractMatrix{S},
+        B::AbstractMatrix{TaylorScalar{T, N}}) where {N, S, T}
+    project_A = ProjectTo(A)
+    project_B = ProjectTo(B)
+    function gemm_pullback(x̄)
+        X̄ = unthunk(x̄)
+        NoTangent(),
+        @thunk(project_A(X̄ * transpose(B))),
+        @thunk(project_B(transpose(A) * X̄))
+    end
+    return A * B, gemm_pullback
+end
+
+@adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T}
     project_v = ProjectTo(v)
     t + v, x̄ -> (x̄, project_v(x̄))
 end
 
-@adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T <: Number}
+@adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T}
     project_v = ProjectTo(v)
     v + t, x̄ -> (project_v(x̄), x̄)
 end
 
-(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
+(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T} = primal(dx)
 
 # Not-a-number patches
 
@@ -63,7 +78,7 @@ accum_sum(xs::AbstractArray{T}; dims = :) where {T <: TaylorScalar} = sum(xs, di
 
 TaylorNumeric{T <: TaylorScalar} = Union{T, AbstractArray{<:T}}
 
-@adjoint function broadcasted(::typeof(+), xs::Union{Numeric, TaylorNumeric}...)
+@adjoint function broadcasted(::typeof(+), xs::TaylorNumeric...)
     broadcast(+, xs...), ȳ -> (nothing, map(x -> unbroadcast(x, ȳ), xs)...)
 end
 
@@ -72,8 +87,8 @@ struct TaylorOneElement{T, N, I, A} <: AbstractArray{T, N}
     ind::I
     axes::A
     function TaylorOneElement(val::T, ind::I,
-                              axes::A) where {T <: TaylorScalar, I <: NTuple{N, Int},
-                                              A <: NTuple{N, AbstractUnitRange}} where {N}
+            axes::A) where {T <: TaylorScalar, I <: NTuple{N, Int},
+            A <: NTuple{N, AbstractUnitRange}} where {N}
         new{T, N, I, A}(val, ind, axes)
     end
 end
@@ -106,13 +121,13 @@ function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar)
     function times_pullback2(Ω̇)
         ΔΩ = unthunk(Ω̇)
         return (NoTangent(), ProjectTo(x)(mul_adjoint(ΔΩ, y)),
-                ProjectTo(y)(mul_adjoint(ΔΩ, x)))
+            ProjectTo(y)(mul_adjoint(ΔΩ, x)))
     end
     return x * y, times_pullback2
 end
 
 function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar,
-               more::TaylorScalar...)
+        more::TaylorScalar...)
     Ω2, back2 = rrule(*, x, y)
     Ω3, back3 = rrule(*, Ω2, z)
     Ω4, back4 = rrule(*, Ω3, more...)
