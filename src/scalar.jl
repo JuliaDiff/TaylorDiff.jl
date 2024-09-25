@@ -1,5 +1,3 @@
-import Base: zero, one, adjoint, conj, transpose
-import Base: +, -, *, /
 import Base: convert, promote_rule
 
 export TaylorScalar
@@ -89,8 +87,9 @@ function promote_rule(::Type{TaylorScalar{T, N}},
         ::Type{S}) where {T, S, N}
     TaylorScalar{promote_type(T, S), N}
 end
-function promote_rule(::Type{TaylorScalar{T1, N}}, ::Type{TaylorScalar{T2,N}}) where {T1, T2, N}
-TaylorScalar{promote_type(T1,T2), N}
+function promote_rule(::Type{TaylorScalar{T1, N}},
+                      ::Type{TaylorScalar{T2, N}}) where {T1, T2, N}
+    TaylorScalar{promote_type(T1, T2), N}
 end
 
 function (::Type{F})(x::TaylorScalar{T, N}) where {T, N, F <: AbstractFloat}
