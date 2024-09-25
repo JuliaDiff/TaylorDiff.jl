@@ -5,20 +5,18 @@ import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, ase
 import Base: sinc, cosc
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
 import Base: hypot, max, min
-import Base: zero, one, adjoint, conj, transpose
-
-using Base: tail
+import Base: tail
 
 # Unary
+@inline +(a::Number, b::TaylorScalar) = TaylorScalar((a + value(b)[1]), tail(value(b))...)
+@inline -(a::Number, b::TaylorScalar) = TaylorScalar((a - value(b)[1]), .-tail(value(b))...)
+@inline *(a::Number, b::TaylorScalar) = TaylorScalar((a .* value(b))...)
+@inline /(a::Number, b::TaylorScalar) = /(promote(a, b)...)
 
-@inline zero(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(zero(T))
-@inline one(::Type{TaylorScalar{T, N}}) where {T, N} = TaylorScalar{T, N}(one(T))
-@inline zero(::TaylorScalar{T, N}) where {T, N} = zero(TaylorScalar{T, N})
-@inline one(::TaylorScalar{T, N}) where {T, N} = one(TaylorScalar{T, N})
-
-transpose(t::TaylorScalar) = t
-adjoint(t::TaylorScalar) = t
-conj(t::TaylorScalar) = t
+@inline +(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] + b), tail(value(a))...)
+@inline -(a::TaylorScalar, b::Number) = TaylorScalar((value(a)[1] - b), tail(value(a))...)
+@inline *(a::TaylorScalar, b::Number) = TaylorScalar((value(a) .* b)...)
+@inline /(a::TaylorScalar, b::Number) = TaylorScalar((value(a) ./ b)...)
 
 ## Delegated
 
