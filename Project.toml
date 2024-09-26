@@ -6,23 +6,22 @@ version = "0.2.4"
 [deps]
 ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-ChainRulesOverloadGeneration = "f51149dc-2911-5acf-81fc-2076a2a81d4f"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [weakdeps]
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [extensions]
 TaylorDiffNNlibExt = ["NNlib"]
 TaylorDiffSFExt = ["SpecialFunctions"]
+TaylorDiffZygoteExt = ["Zygote"]
 
 [compat]
 ChainRules = "1"
 ChainRulesCore = "1"
-ChainRulesOverloadGeneration = "0.1"
 NNlib = "0.9"
 SpecialFunctions = "2"
 SymbolicUtils = "2, 3"

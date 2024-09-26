@@ -1,6 +1,5 @@
-import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing
+import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing, @opt_out
 using Base.Broadcast: broadcasted
-import Zygote: @adjoint, accum_sum, unbroadcast, Numeric, ∇getindex, _project
 
 function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
     mapreduce(*, +, value(a), value(b))
@@ -31,7 +30,7 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-        t::AbstractVector{TaylorScalar{T, N}}) where {N, S, T}
+        t::AbstractVector{TaylorScalar{T, N}}) where {N, S <: Real, T <: Real}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
         x̂ = reinterpret(reshape, T, x̄)
@@ -42,7 +41,7 @@ function rrule(::typeof(*), A::AbstractMatrix{S},
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-        B::AbstractMatrix{TaylorScalar{T, N}}) where {N, S, T}
+        B::AbstractMatrix{TaylorScalar{T, N}}) where {N, S <: Real, T <: Real}
     project_A = ProjectTo(A)
     project_B = ProjectTo(B)
     function gemm_pullback(x̄)
@@ -54,88 +53,36 @@ function rrule(::typeof(*), A::AbstractMatrix{S},
     return A * B, gemm_pullback
 end
 
-@adjoint function +(t::Vector{TaylorScalar{T, N}}, v::Vector{T}) where {N, T}
-    project_v = ProjectTo(v)
-    t + v, x̄ -> (x̄, project_v(x̄))
+(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
+
+# opt-outs
+
+# Unary functions
+
+for f in (
+    exp, exp10, exp2, expm1,
+    sin, cos, tan, sec, csc, cot,
+    sinh, cosh, tanh, sech, csch, coth,
+    log, log10, log2, log1p,
+    asin, acos, atan, asec, acsc, acot,
+    asinh, acosh, atanh, asech, acsch, acoth,
+    sqrt, cbrt, inv
+)
+    @eval @opt_out frule(::typeof($f), x::TaylorScalar)
+    @eval @opt_out rrule(::typeof($f), x::TaylorScalar)
 end
 
-@adjoint function +(v::Vector{T}, t::Vector{TaylorScalar{T, N}}) where {N, T}
-    project_v = ProjectTo(v)
-    v + t, x̄ -> (project_v(x̄), x̄)
-end
+# Binary functions
 
-(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T} = primal(dx)
-
-# Not-a-number patches
-
-ProjectTo(::T) where {T <: TaylorScalar} = ProjectTo{T}()
-(p::ProjectTo{T})(x::T) where {T <: TaylorScalar} = x
-function ProjectTo(x::AbstractArray{T}) where {T <: TaylorScalar}
-    ProjectTo{AbstractArray}(; element = ProjectTo(zero(T)), axes = axes(x))
-end
-(p::ProjectTo{AbstractArray{T}})(x::AbstractArray{T}) where {T <: TaylorScalar} = x
-accum_sum(xs::AbstractArray{T}; dims = :) where {T <: TaylorScalar} = sum(xs, dims = dims)
-
-TaylorNumeric{T <: TaylorScalar} = Union{T, AbstractArray{<:T}}
-
-@adjoint function broadcasted(::typeof(+), xs::TaylorNumeric...)
-    broadcast(+, xs...), ȳ -> (nothing, map(x -> unbroadcast(x, ȳ), xs)...)
-end
-
-struct TaylorOneElement{T, N, I, A} <: AbstractArray{T, N}
-    val::T
-    ind::I
-    axes::A
-    function TaylorOneElement(val::T, ind::I,
-            axes::A) where {T <: TaylorScalar, I <: NTuple{N, Int},
-            A <: NTuple{N, AbstractUnitRange}} where {N}
-        new{T, N, I, A}(val, ind, axes)
+for f in (
+    *, /, ^
+)
+    for (tlhs, trhs) in (
+        (TaylorScalar, TaylorScalar),
+        (TaylorScalar, Number),
+        (Number, TaylorScalar)
+    )
+        @eval @opt_out frule(::typeof($f), x::$tlhs, y::$trhs)
+        @eval @opt_out rrule(::typeof($f), x::$tlhs, y::$trhs)
     end
-end
-
-Base.size(A::TaylorOneElement) = map(length, A.axes)
-Base.axes(A::TaylorOneElement) = A.axes
-function Base.getindex(A::TaylorOneElement{T, N}, i::Vararg{Int, N}) where {T, N}
-    ifelse(i == A.ind, A.val, zero(T))
-end
-
-function ∇getindex(x::AbstractArray{T, N}, inds) where {T <: TaylorScalar, N}
-    dy -> begin
-        dx = TaylorOneElement(dy, inds, axes(x))
-        return (_project(x, dx), map(_ -> nothing, inds)...)
-    end
-end
-
-@generated function mul_adjoint(Ω::TaylorScalar{T, N}, x::TaylorScalar{T, N}) where {T, N}
-    return quote
-        vΩ, vx = value(Ω), value(x)
-        @inbounds TaylorScalar($([:(+($([:($(binomial(j - 1, i - 1)) * vΩ[$j] *
-                                           vx[$(j + 1 - i)]) for j in i:N]...)))
-                                  for i in 1:N]...))
-    end
-end
-
-rrule(::typeof(*), x::TaylorScalar) = rrule(identity, x)
-
-function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar)
-    function times_pullback2(Ω̇)
-        ΔΩ = unthunk(Ω̇)
-        return (NoTangent(), ProjectTo(x)(mul_adjoint(ΔΩ, y)),
-            ProjectTo(y)(mul_adjoint(ΔΩ, x)))
-    end
-    return x * y, times_pullback2
-end
-
-function rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar,
-        more::TaylorScalar...)
-    Ω2, back2 = rrule(*, x, y)
-    Ω3, back3 = rrule(*, Ω2, z)
-    Ω4, back4 = rrule(*, Ω3, more...)
-    function times_pullback4(Ω̇)
-        Δ4 = back4(unthunk(Ω̇))  # (0, ΔΩ3, Δmore...)
-        Δ3 = back3(Δ4[2])       # (0, ΔΩ2, Δz)
-        Δ2 = back2(Δ3[2])       # (0, Δx, Δy)
-        return (Δ2..., Δ3[3], Δ4[3:end]...)
-    end
-    return Ω4, times_pullback4
 end
