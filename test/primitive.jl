@@ -47,3 +47,25 @@ end
         @test derivative(f, 0, order)≈fdm(f, 0) atol=1e-6
     end
 end
+
+@testset "Corner cases" begin
+    offenders = (
+        TaylorDiff.TaylorScalar{Float64, 4}((Inf, 1.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 4}((Inf, 0.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 4}((1.0, 0.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 4}((1.0, Inf, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 4}((0.0, 1.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 4}((0.0, Inf, 0.0, 0.0))        # Others ?
+    )
+    f_id = (
+        :id => x -> x,
+        :add0 => x -> x + 0,
+        :sub0 => x -> x - 0,
+        :mul1 => x -> x * 1,
+        :div1 => x -> x / 1,
+        :pow1 => x -> x^1
+    )
+    for (name, f) in f_id, t in offenders
+        @test f(t) == t
+    end
+end
