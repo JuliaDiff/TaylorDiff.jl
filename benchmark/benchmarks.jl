@@ -1,10 +1,14 @@
 using BenchmarkTools
-using Random: seed!
-using ForwardDiff, Zygote, Flux
+using Random: seed!, default_rng
+using ForwardDiff, Zygote
 using TaylorSeries: Taylor1
 using TaylorDiff
 
-seed!(19260817)
+rng = default_rng()
+seed!(rng, 19260817)
+
+using Logging
+Logging.disable_logging(Logging.Warn)
 
 include("scalar.jl")
 include("mlp.jl")

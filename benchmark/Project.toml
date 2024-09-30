@@ -1,19 +1,11 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
-ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 TaylorDiff = "b36ab563-344f-407b-a36a-4f200bebf99c"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-SliceMap = "82cb661a-3f19-5665-9e27-df437c7e54c8"
-
-[compat]
-Zygote = "0.6.55"
-julia = "1.6"

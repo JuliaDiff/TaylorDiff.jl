@@ -1,3 +1,5 @@
+using Lux, Random, Zygote
+
 const input = 2
 const hidden = 16
 
@@ -5,9 +7,13 @@ model = Chain(Dense(input => hidden, exp),
     Dense(hidden => hidden, exp),
     Dense(hidden => 1),
     first)
-trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x)
+
+ps, st = Lux.setup(rng, model)
+
+trial(model, x) = x[1] * (1 - x[1]) * x[2] * (1 - x[2]) * model(x, ps, st)[1]
 
 x = rand(Float32, input)
+trial(model, x)
 function loss_by_finitediff(model, x)
     ε = cbrt(eps(Float32))
     ε₁ = [ε, 0]
