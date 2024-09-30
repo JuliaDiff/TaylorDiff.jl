@@ -10,10 +10,10 @@ seed!(rng, 19260817)
 using Logging
 Logging.disable_logging(Logging.Warn)
 
-include("scalar.jl")
-include("mlp.jl")
-include("taylor_expansion.jl")
-include("pinn.jl")
+include("groups/scalar.jl")
+include("groups/mlp.jl")
+include("groups/taylor_expansion.jl")
+include("groups/pinn.jl")
 
 scalar = create_benchmark_scalar_function(sin, 0.1)
 mlp = create_benchmark_mlp((2, 16), [2.0, 3.0], [1.0, 1.0])
