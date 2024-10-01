@@ -1,5 +1,3 @@
-import Base: zero, one, adjoint, conj, transpose
-import Base: +, -, *, /
 import Base: convert, promote_rule
 
 export TaylorScalar
@@ -25,55 +23,52 @@ Representation of Taylor polynomials.
 
 # Fields
 
-- `value::NTuple{N, T}`: i-th element of this stores the (i-1)-th derivative
+- `value::T`: zeroth order coefficient
+- `partials::NTuple{N, T}`: i-th element of this stores the i-th derivative
 """
 struct TaylorScalar{T, N} <: Real
-    value::NTuple{N, T}
-    function TaylorScalar{T, N}(value::NTuple{N, T}) where {T, N}
+    value::T
+    partials::NTuple{N, T}
+    function TaylorScalar{T, N}(value::T, partials::NTuple{N, T}) where {T, N}
         can_taylorize(T) || throw_cannot_taylorize(T)
-        new{T, N}(value)
+        new{T, N}(value, partials)
     end
 end
 
-TaylorScalar(value::NTuple{N, T}) where {T, N} = TaylorScalar{T, N}(value)
-TaylorScalar(value::Vararg{T, N}) where {T, N} = TaylorScalar{T, N}(value)
+function TaylorScalar(value::T, partials::NTuple{N, T}) where {T, N}
+    TaylorScalar{T, N}(value, partials)
+end
+
+function TaylorScalar(value_and_partials::NTuple{N, T}) where {T, N}
+    TaylorScalar(value_and_partials[1], value_and_partials[2:end])
+end
 
 """
     TaylorScalar{T, N}(x::T) where {T, N}
 
 Construct a Taylor polynomial with zeroth order coefficient.
 """
-@generated function TaylorScalar{T, N}(x::S) where {T, S <: Real, N}
-    return quote
-        $(Expr(:meta, :inline))
-        TaylorScalar((T(x), $(zeros(T, N - 1)...)))
-    end
-end
+TaylorScalar{T, N}(x::S) where {T, S <: Real, N} = TaylorScalar(
+    T(x), ntuple(i -> zero(T), Val(N)))
 
 """
     TaylorScalar{T, N}(x::T, d::T) where {T, N}
 
 Construct a Taylor polynomial with zeroth and first order coefficient, acting as a seed.
 """
-@generated function TaylorScalar{T, N}(x::S, d::S) where {T, S <: Real, N}
-    return quote
-        $(Expr(:meta, :inline))
-        TaylorScalar((T(x), T(d), $(zeros(T, N - 2)...)))
-    end
-end
+TaylorScalar{T, N}(x::S, d::S) where {T, S <: Real, N} = TaylorScalar(
+    T(x), ntuple(i -> i == 1 ? T(d) : zero(T), Val(N)))
 
-@generated function TaylorScalar{T, N}(t::TaylorScalar{T, M}) where {T, N, M}
-    N <= M ? quote
-        $(Expr(:meta, :inline))
-        TaylorScalar(value(t)[1:N])
-    end : quote
-        $(Expr(:meta, :inline))
-        TaylorScalar((value(t)..., $(zeros(T, N - M)...)))
-    end
+function TaylorScalar{T, N}(t::TaylorScalar{T, M}) where {T, N, M}
+    v = value(t)
+    p = partials(t)
+    N <= M ? TaylorScalar(v, p[1:N]) :
+    TaylorScalar(v, ntuple(i -> i <= M ? p[i] : zero(T), Val(N)))
 end
 
 @inline value(t::TaylorScalar) = t.value
-@inline extract_derivative(t::TaylorScalar, i::Integer) = t.value[i]
+@inline partials(t::TaylorScalar) = t.partials
+@inline extract_derivative(t::TaylorScalar, i::Integer) = t.partials[i]
 @inline function extract_derivative(v::AbstractArray{T},
         i::Integer) where {T <: TaylorScalar}
     map(t -> extract_derivative(t, i), v)
@@ -83,7 +78,8 @@ end
         i::Integer) where {T <: TaylorScalar}
     map!(t -> extract_derivative(t, i), result, v)
 end
-@inline primal(t::TaylorScalar) = extract_derivative(t, 1)
+
+@inline flatten(t::TaylorScalar) = (value(t), partials(t)...)
 
 function promote_rule(::Type{TaylorScalar{T, N}},
         ::Type{S}) where {T, S, N}
@@ -91,20 +87,18 @@ function promote_rule(::Type{TaylorScalar{T, N}},
 end
 
 function (::Type{F})(x::TaylorScalar{T, N}) where {T, N, F <: AbstractFloat}
-    F(primal(x))
+    F(value(x))
 end
 
-function Base.nextfloat(x::TaylorScalar{T, N}) where {T, N}
-    TaylorScalar{T, N}(ntuple(i -> i == 1 ? nextfloat(value(x)[i]) : value(x)[i], N))
-end
+const COVARIANT_OPS = Symbol[:nextfloat, :prevfloat]
 
-function Base.prevfloat(x::TaylorScalar{T, N}) where {T, N}
-    TaylorScalar{T, N}(ntuple(i -> i == 1 ? prevfloat(value(x)[i]) : value(x)[i], N))
+for op in COVARIANT_OPS
+    @eval Base.$(op)(x::TaylorScalar{T, N}) where {T, N} = TaylorScalar($(op)(value(x)), partials(x))
 end
 
 const UNARY_PREDICATES = Symbol[
     :isinf, :isnan, :isfinite, :iseven, :isodd, :isreal, :isinteger]
 
 for pred in UNARY_PREDICATES
-    @eval Base.$(pred)(x::TaylorScalar) = $(pred)(primal(x))
+    @eval Base.$(pred)(x::TaylorScalar) = $(pred)(value(x))
 end

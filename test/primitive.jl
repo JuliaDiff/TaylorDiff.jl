@@ -50,12 +50,12 @@ end
 
 @testset "Corner cases" begin
     offenders = (
-        TaylorDiff.TaylorScalar{Float64, 4}((Inf, 1.0, 0.0, 0.0)),
-        TaylorDiff.TaylorScalar{Float64, 4}((Inf, 0.0, 0.0, 0.0)),
-        TaylorDiff.TaylorScalar{Float64, 4}((1.0, 0.0, 0.0, 0.0)),
-        TaylorDiff.TaylorScalar{Float64, 4}((1.0, Inf, 0.0, 0.0)),
-        TaylorDiff.TaylorScalar{Float64, 4}((0.0, 1.0, 0.0, 0.0)),
-        TaylorDiff.TaylorScalar{Float64, 4}((0.0, Inf, 0.0, 0.0))        # Others ?
+        TaylorDiff.TaylorScalar{Float64, 3}(Inf, (1.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 3}(Inf, (0.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 3}(1.0, (0.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 3}(1.0, (Inf, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 3}(0.0, (1.0, 0.0, 0.0)),
+        TaylorDiff.TaylorScalar{Float64, 3}(0.0, (Inf, 0.0, 0.0))        # Others ?
     )
     f_id = (
         :id => x -> x,

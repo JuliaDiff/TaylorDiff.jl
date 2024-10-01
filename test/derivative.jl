@@ -20,12 +20,12 @@ end
     end
     x = 2.0
     y = [0.0, 0.0]
-    @test derivative(g!, y, x, 1.0, Val{2}()) ≈ [4.0, 1.0]
+    @test derivative(g!, y, x, 1.0, Val{1}()) ≈ [4.0, 1.0]
 end
 
 @testset "O-function, I-derivative" begin
     g(x) = x .^ 2
-    @test derivative!(zeros(2), g, [1.0, 2.0], [1.0, 0.0], Val{2}()) ≈ [2.0, 0.0]
+    @test derivative!(zeros(2), g, [1.0, 2.0], [1.0, 0.0], Val{1}()) ≈ [2.0, 0.0]
 end
 
 @testset "I-function, I-derivative" begin
@@ -35,5 +35,5 @@ end
     end
     x = [2.0, 3.0]
     y = [0.0, 0.0]
-    @test derivative!(y, g!, zeros(2), x, [1.0, 0.0], Val{2}()) ≈ [4.0, 0.0]
+    @test derivative!(y, g!, zeros(2), x, [1.0, 0.0], Val{1}()) ≈ [4.0, 0.0]
 end

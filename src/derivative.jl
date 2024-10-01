@@ -5,7 +5,7 @@ export derivative, derivative!, derivatives, make_seed
     derivative(f, x, l, ::Val{N})
     derivative(f!, y, x, l, ::Val{N})
 
-Computes `order`-th directional derivative of `f` w.r.t. vector `x` in direction `l`.
+Computes `N`-th directional derivative of `f` w.r.t. vector `x` in direction `l`.
 """
 function derivative end
 
@@ -21,7 +21,7 @@ function derivative! end
     derivatives(f, x, l, ::Val{N})
     derivatives(f!, y, x, l, ::Val{N})
 
-Computes all derivatives of `f` at `x` up to order `N - 1`.
+Computes all derivatives of `f` at `x` up to order `N`.
 """
 function derivatives end
 
@@ -32,12 +32,12 @@ function derivatives end
 # Convenience wrappers for converting orders to value types
 # and forward work to core APIs
 
-@inline derivative(f, x, l, order::Int64) = derivative(f, x, l, Val{order + 1}())
-@inline derivative(f!, y, x, l, order::Int64) = derivative(f!, y, x, l, Val{order + 1}())
+@inline derivative(f, x, l, order::Int64) = derivative(f, x, l, Val{order}())
+@inline derivative(f!, y, x, l, order::Int64) = derivative(f!, y, x, l, Val{order}())
 @inline derivative!(result, f, x, l, order::Int64) = derivative!(
-    result, f, x, l, Val{order + 1}())
+    result, f, x, l, Val{order}())
 @inline derivative!(result, f!, y, x, l, order::Int64) = derivative!(
-    result, f!, y, x, l, Val{order + 1}())
+    result, f!, y, x, l, Val{order}())
 
 # Core APIs
 
@@ -69,6 +69,6 @@ end
 @inline function derivatives(f!, y::AbstractArray{T}, x, l, vN::Val{N}) where {T, N}
     buffer = similar(y, TaylorScalar{T, N})
     f!(buffer, make_seed(x, l, vN))
-    map!(primal, y, buffer)
+    map!(value, y, buffer)
     return buffer
 end

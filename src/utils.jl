@@ -10,10 +10,11 @@ dummy = (NoTangent(), 1)
 function define_unary_function(func, m)
     F = typeof(func)
     # base case
-    @eval m function (op::$F)(t::TaylorScalar{T, 2}) where {T}
-        t0, t1 = value(t)
+    @eval m function (op::$F)(t::TaylorScalar{T, 1}) where {T}
+        t0 = value(t)
+        t1 = first(partials(t))
         f0, f1 = frule((NoTangent(), t1), op, t0)
-        TaylorScalar{T, 2}(f0, zero_tangent(f0) + f1)
+        TaylorScalar{T, 1}(f0, zero_tangent(f0) + f1)
     end
     der = frule(dummy, func, z)[2]
     term, raiser = der isa Pow && der.exp == -1 ? (der.base, raiseinv) : (der, raise)

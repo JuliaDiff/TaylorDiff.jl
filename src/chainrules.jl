@@ -1,29 +1,30 @@
 import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing, @opt_out
 using Base.Broadcast: broadcasted
 
-function contract(a::TaylorScalar{T, N}, b::TaylorScalar{S, N}) where {T, S, N}
-    mapreduce(*, +, value(a), value(b))
-end
-
-function rrule(::Type{TaylorScalar{T, N}}, v::NTuple{N, T}) where {N, T}
-    taylor_scalar_pullback(t̄) = NoTangent(), value(t̄)
-    return TaylorScalar(v), taylor_scalar_pullback
+function rrule(::Type{TaylorScalar{T, N}}, v::T, p::NTuple{N, T}) where {N, T}
+    taylor_scalar_pullback(t̄) = NoTangent(), value(t̄), partials(t̄)
+    return TaylorScalar{T, N}(v, p), taylor_scalar_pullback
 end
 
 function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
-    value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(v̄)
+    value_pullback(v̄::T) = NoTangent(), TaylorScalar{T, N}(v̄)
+    return value(t), value_pullback
+end
+
+function rrule(::typeof(partials), t::TaylorScalar{T, N}) where {N, T}
+    value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(0, v̄)
     # for structural tangent, convert to tuple
     function value_pullback(v̄::Tangent{P, NTuple{N, T}}) where {P}
-        NoTangent(), TaylorScalar{T, N}(backing(v̄))
+        NoTangent(), TaylorScalar{T, N}(zero(T), backing(v̄))
     end
-    value_pullback(v̄) = NoTangent(), TaylorScalar{T, N}(map(x -> convert(T, x), Tuple(v̄)))
-    return value(t), value_pullback
+    value_pullback(v̄) = NoTangent(), TaylorScalar{T, N}(zero(T), map(x -> convert(T, x), Tuple(v̄)))
+    return partials(t), value_pullback
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
         i::Integer) where {N, T}
     function extract_derivative_pullback(d̄)
-        NoTangent(), TaylorScalar{T, N}(ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
+        NoTangent(), TaylorScalar{T, N}(zero(T), ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
         NoTangent()
     end
     return extract_derivative(t, i), extract_derivative_pullback
@@ -53,7 +54,7 @@ function rrule(::typeof(*), A::AbstractMatrix{S},
     return A * B, gemm_pullback
 end
 
-(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = primal(dx)
+(project::ProjectTo{T})(dx::TaylorScalar{T, N}) where {N, T <: Number} = value(dx)
 
 # opt-outs
 
