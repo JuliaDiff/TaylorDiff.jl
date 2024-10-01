@@ -86,3 +86,13 @@ for f in (
         @eval @opt_out rrule(::typeof($f), x::$tlhs, y::$trhs)
     end
 end
+
+# Multi-argument functions
+
+@opt_out frule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar)
+@opt_out rrule(::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar)
+
+@opt_out frule(
+    ::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar, more::TaylorScalar...)
+@opt_out rrule(
+    ::typeof(*), x::TaylorScalar, y::TaylorScalar, z::TaylorScalar, more::TaylorScalar...)

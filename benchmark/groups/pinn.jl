@@ -1,10 +1,10 @@
-using Lux, Random, Zygote
+using Lux, Zygote
 
 const input = 2
 const hidden = 16
 
-model = Chain(Dense(input => hidden, exp),
-    Dense(hidden => hidden, exp),
+model = Chain(Dense(input => hidden, Lux.relu),
+    Dense(hidden => hidden, Lux.relu),
     Dense(hidden => 1),
     first)
 
