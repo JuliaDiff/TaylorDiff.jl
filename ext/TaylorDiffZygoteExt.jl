@@ -7,8 +7,8 @@ using ChainRulesCore: @opt_out
 # Zygote can't infer this constructor function
 # defining rrule for this doesn't seem to work for Zygote
 # so need to use @adjoint
-@adjoint TaylorScalar{T, N}(t::TaylorScalar{T, M}) where {T, N, M} = TaylorScalar{T, N}(t),
-x̄ -> (TaylorScalar{T, M}(x̄),)
+@adjoint TaylorScalar{P}(t::TaylorScalar{T, Q}) where {T, P, Q} = TaylorScalar{P}(t),
+x̄ -> (TaylorScalar{Q}(x̄),)
 
 # Zygote will try to use ForwardDiff to compute broadcast functions
 # However, TaylorScalar is not dual safe, so we opt out of this

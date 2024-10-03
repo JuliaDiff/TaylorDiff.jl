@@ -2,73 +2,73 @@
 export derivative, derivative!, derivatives, make_seed
 
 """
-    derivative(f, x, l, ::Val{N})
-    derivative(f!, y, x, l, ::Val{N})
+    derivative(f, x, l, ::Val{P})
+    derivative(f!, y, x, l, ::Val{P})
 
-Computes `N`-th directional derivative of `f` w.r.t. vector `x` in direction `l`.
+Computes `P`-th directional derivative of `f` w.r.t. vector `x` in direction `l`.
 """
 function derivative end
 
 """
-    derivative!(result, f, x, l, ::Val{N})
-    derivative!(result, f!, y, x, l, ::Val{N})
+    derivative!(result, f, x, l, ::Val{P})
+    derivative!(result, f!, y, x, l, ::Val{P})
 
 In-place derivative calculation APIs. `result` is expected to be pre-allocated and have the same shape as `y`.
 """
 function derivative! end
 
 """
-    derivatives(f, x, l, ::Val{N})
-    derivatives(f!, y, x, l, ::Val{N})
+    derivatives(f, x, l, ::Val{P})
+    derivatives(f!, y, x, l, ::Val{P})
 
-Computes all derivatives of `f` at `x` up to order `N`.
+Computes all derivatives of `f` at `x` up to order `P`.
 """
 function derivatives end
 
 # Convenience wrapper for adding unit seed to the input
 
-@inline derivative(f, x, order::Int64) = derivative(f, x, one(eltype(x)), order)
+@inline derivative(f, x, p::Int64) = derivative(f, x, one(eltype(x)), p)
 
-# Convenience wrappers for converting orders to value types
+# Convenience wrappers for converting ps to value types
 # and forward work to core APIs
 
-@inline derivative(f, x, l, order::Int64) = derivative(f, x, l, Val{order}())
-@inline derivative(f!, y, x, l, order::Int64) = derivative(f!, y, x, l, Val{order}())
-@inline derivative!(result, f, x, l, order::Int64) = derivative!(
-    result, f, x, l, Val{order}())
-@inline derivative!(result, f!, y, x, l, order::Int64) = derivative!(
-    result, f!, y, x, l, Val{order}())
+@inline derivative(f, x, l, p::Int64) = derivative(f, x, l, Val{p}())
+@inline derivative(f!, y, x, l, p::Int64) = derivative(f!, y, x, l, Val{p}())
+@inline derivative!(result, f, x, l, p::Int64) = derivative!(
+    result, f, x, l, Val{p}())
+@inline derivative!(result, f!, y, x, l, p::Int64) = derivative!(
+    result, f!, y, x, l, Val{p}())
 
 # Core APIs
 
 # Added to help Zygote infer types
-@inline function make_seed(x::T, l::S, ::Val{N}) where {T <: Real, S <: Real, N}
-    TaylorScalar{T, N}(x, convert(T, l))
+@inline function make_seed(x::T, l::T, ::Val{P}) where {T <: Real, P}
+    TaylorScalar{P}(x, convert(T, l))
 end
 
-@inline function make_seed(x::AbstractArray{T}, l, vN::Val{N}) where {T <: Real, N}
-    broadcast(make_seed, x, l, vN)
+@inline function make_seed(x::AbstractArray{T}, l, p::Val{P}) where {T <: Real, P}
+    broadcast(make_seed, x, l, p)
 end
 
-# `derivative` API: computes the `N - 1`-th derivative of `f` at `x`
-@inline derivative(f, x, l, vN::Val{N}) where {N} = extract_derivative(
-    derivatives(f, x, l, vN), N)
-@inline derivative(f!, y, x, l, vN::Val{N}) where {N} = extract_derivative(
-    derivatives(f!, y, x, l, vN), N)
-@inline derivative!(result, f, x, l, vN::Val{N}) where {N} = extract_derivative!(
-    result, derivatives(f, x, l, vN), N)
-@inline derivative!(result, f!, y, x, l, vN::Val{N}) where {N} = extract_derivative!(
-    result, derivatives(f!, y, x, l, vN), N)
+# `derivative` API: computes the `P - 1`-th derivative of `f` at `x`
+@inline derivative(f, x, l, p::Val{P}) where {P} = extract_derivative(
+    derivatives(f, x, l, p), P)
+@inline derivative(f!, y, x, l, p::Val{P}) where {P} = extract_derivative(
+    derivatives(f!, y, x, l, p), P)
+@inline derivative!(result, f, x, l, p::Val{P}) where {P} = extract_derivative!(
+    result, derivatives(f, x, l, p), P)
+@inline derivative!(result, f!, y, x, l, p::Val{P}) where {P} = extract_derivative!(
+    result, derivatives(f!, y, x, l, p), P)
 
-# `derivatives` API: computes all derivatives of `f` at `x` up to order `N - 1`
+# `derivatives` API: computes all derivatives of `f` at `x` up to p `P - 1`
 
 # Out-of-place function
-@inline derivatives(f, x, l, vN::Val{N}) where {N} = f(make_seed(x, l, vN))
+@inline derivatives(f, x, l, p::Val{P}) where {P} = f(make_seed(x, l, p))
 
 # In-place function
-@inline function derivatives(f!, y::AbstractArray{T}, x, l, vN::Val{N}) where {T, N}
-    buffer = similar(y, TaylorScalar{T, N})
-    f!(buffer, make_seed(x, l, vN))
+@inline function derivatives(f!, y::AbstractArray{T}, x, l, p::Val{P}) where {T, P}
+    buffer = similar(y, TaylorScalar{T, P})
+    f!(buffer, make_seed(x, l, p))
     map!(value, y, buffer)
     return buffer
 end

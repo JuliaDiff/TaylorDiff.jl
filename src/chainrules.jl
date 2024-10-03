@@ -1,9 +1,9 @@
 import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing, @opt_out
 using Base.Broadcast: broadcasted
 
-function rrule(::Type{TaylorScalar{T, N}}, v::T, p::NTuple{N, T}) where {N, T}
+function rrule(::Type{TaylorScalar}, v::T, p::NTuple{N, T}) where {N, T}
     taylor_scalar_pullback(t̄) = NoTangent(), value(t̄), partials(t̄)
-    return TaylorScalar{T, N}(v, p), taylor_scalar_pullback
+    return TaylorScalar(v, p), taylor_scalar_pullback
 end
 
 function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
@@ -15,16 +15,18 @@ function rrule(::typeof(partials), t::TaylorScalar{T, N}) where {N, T}
     value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(0, v̄)
     # for structural tangent, convert to tuple
     function value_pullback(v̄::Tangent{P, NTuple{N, T}}) where {P}
-        NoTangent(), TaylorScalar{T, N}(zero(T), backing(v̄))
+        NoTangent(), TaylorScalar(zero(T), backing(v̄))
     end
-    value_pullback(v̄) = NoTangent(), TaylorScalar{T, N}(zero(T), map(x -> convert(T, x), Tuple(v̄)))
+    function value_pullback(v̄)
+        NoTangent(), TaylorScalar(zero(T), map(x -> convert(T, x), Tuple(v̄)))
+    end
     return partials(t), value_pullback
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
         i::Integer) where {N, T}
     function extract_derivative_pullback(d̄)
-        NoTangent(), TaylorScalar{T, N}(zero(T), ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
+        NoTangent(), TaylorScalar(zero(T), ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
         NoTangent()
     end
     return extract_derivative(t, i), extract_derivative_pullback

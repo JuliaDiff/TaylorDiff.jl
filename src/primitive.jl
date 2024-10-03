@@ -6,6 +6,31 @@ import Base: sinc, cosc
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
 import Base: hypot, max, min
 import Base: tail
+import Base: convert, promote_rule
+
+Taylor = Union{TaylorScalar, TaylorArray}
+
+@inline value(t::Taylor) = t.value
+@inline partials(t::Taylor) = t.partials
+@inline extract_derivative(t::Taylor, i::Integer) = t.partials[i]
+@inline extract_derivative(v::AbstractArray{<:TaylorScalar}, i::Integer) = map(
+    t -> extract_derivative(t, i), v)
+@inline extract_derivative(r, i::Integer) = false
+@inline function extract_derivative!(result::AbstractArray, v::AbstractArray{T},
+        i::Integer) where {T <: TaylorScalar}
+    map!(t -> extract_derivative(t, i), result, v)
+end
+
+@inline flatten(t::Taylor) = (value(t), partials(t)...)
+
+function promote_rule(::Type{TaylorScalar{T, P}},
+        ::Type{S}) where {T, S, P}
+    TaylorScalar{promote_type(T, S), P}
+end
+
+function (::Type{F})(x::TaylorScalar{T, P}) where {T, P, F <: AbstractFloat}
+    F(value(x))
+end
 
 # Unary
 @inline +(a::Number, b::TaylorScalar) = TaylorScalar(a + value(b), partials(b))

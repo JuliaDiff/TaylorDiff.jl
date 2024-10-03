@@ -29,16 +29,16 @@ function define_unary_function(func, m)
         t0 = value(t)
         t1 = first(partials(t))
         f0, f1 = frule((NoTangent(), t1), op, t0)
-        TaylorScalar{T, 1}(f0, zero_tangent(f0) + f1)
+        TaylorScalar{1}(T(f0), zero(T) + f1)
     end
     term, raiser = get_term_raiser(func)
     # Higher order: recursion by raising
-    @eval m @generated function (op::$F)(t::TaylorScalar{T, N}) where {T, N}
+    @eval m @generated function (op::$F)(t::TaylorScalar{T, p}) where {T, p}
         expr = $(QuoteNode(toexpr(term)))
         f = $func
         quote
             $(Expr(:meta, :inline))
-            z = TaylorScalar{T, N - 1}(t)
+            z = TaylorScalar{p - 1}(t)
             f0 = $f(value(t)[1])
             df = zero_tangent(z) + $expr
             $$raiser(f0, df, t)
