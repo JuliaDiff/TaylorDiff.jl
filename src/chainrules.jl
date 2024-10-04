@@ -2,8 +2,13 @@ import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing, @opt_out
 using Base.Broadcast: broadcasted
 
 function rrule(::Type{TaylorScalar}, v::T, p::NTuple{N, T}) where {N, T}
-    taylor_scalar_pullback(t̄) = NoTangent(), value(t̄), partials(t̄)
-    return TaylorScalar(v, p), taylor_scalar_pullback
+    constructor_pullback(t̄) = NoTangent(), value(t̄), partials(t̄)
+    return TaylorScalar(v, p), constructor_pullback
+end
+
+function rrule(::Type{TaylorArray}, v::T, p::NTuple{N, T}) where {N, T}
+    constructor_pullback(t̄) = NoTangent(), value(t̄), partials(t̄)
+    return TaylorArray(v, p), constructor_pullback
 end
 
 function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
@@ -23,6 +28,11 @@ function rrule(::typeof(partials), t::TaylorScalar{T, N}) where {N, T}
     return partials(t), value_pullback
 end
 
+function rrule(::typeof(partials), t::TaylorArray{T, N, A, P}) where {N, T, A, P}
+    value_pullback(v̄::NTuple{P, A}) = NoTangent(), TaylorArray(broadcast(zero, v̄[1]), v̄)
+    return partials(t), value_pullback
+end
+
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
         i::Integer) where {N, T}
     function extract_derivative_pullback(d̄)
@@ -30,6 +40,16 @@ function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
         NoTangent()
     end
     return extract_derivative(t, i), extract_derivative_pullback
+end
+
+function rrule(::typeof(Base.getindex), a::TaylorArray, i::Int...)
+    function getindex_pullback(t̄)
+        ā = similar(a)
+        ā .= zero(eltype(a))
+        ā[i...] = t̄
+        NoTangent(), ā, map(Returns(NoTangent()), i)
+    end
+    return getindex(a, i...), getindex_pullback
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},

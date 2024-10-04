@@ -27,7 +27,7 @@ function derivatives end
 
 # Convenience wrapper for adding unit seed to the input
 
-@inline derivative(f, x, p::Int64) = derivative(f, x, one(eltype(x)), p)
+@inline derivative(f, x, p::Int64) = derivative(f, x, broadcast(one, x), p)
 
 # Convenience wrappers for converting ps to value types
 # and forward work to core APIs
@@ -42,13 +42,8 @@ function derivatives end
 # Core APIs
 
 # Added to help Zygote infer types
-@inline function make_seed(x::T, l::T, ::Val{P}) where {T <: Real, P}
-    TaylorScalar{P}(x, convert(T, l))
-end
-
-@inline function make_seed(x::AbstractArray{T}, l, p::Val{P}) where {T <: Real, P}
-    broadcast(make_seed, x, l, p)
-end
+@inline make_seed(x::T, l::T, ::Val{P}) where {T <: Real, P} = TaylorScalar{P}(x, l)
+@inline make_seed(x::A, l::A, ::Val{P}) where {A <: AbstractArray, P} = broadcast(make_seed, x, l, Val{P}())
 
 # `derivative` API: computes the `P - 1`-th derivative of `f` at `x`
 @inline derivative(f, x, l, p::Val{P}) where {P} = extract_derivative(
@@ -66,8 +61,8 @@ end
 @inline derivatives(f, x, l, p::Val{P}) where {P} = f(make_seed(x, l, p))
 
 # In-place function
-@inline function derivatives(f!, y::AbstractArray{T}, x, l, p::Val{P}) where {T, P}
-    buffer = similar(y, TaylorScalar{T, P})
+@inline function derivatives(f!, y, x, l, p::Val{P}) where {P}
+    buffer = similar(y, TaylorScalar{eltype(y), P})
     f!(buffer, make_seed(x, l, p))
     map!(value, y, buffer)
     return buffer

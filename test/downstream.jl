@@ -27,8 +27,8 @@ backend = AutoZygote()
     # Matrix functions
     some_matrix = [0.7 0.1; 0.4 0.2]
     f(x) = sum(exp.(x), dims = 1)
-    dfdx1(x) = derivative(f, x, [1.0, 0.0], 1)
-    dfdx2(x) = derivative(f, x, [0.0, 1.0], 1)
+    dfdx1(x) = derivative(f, x, [1.0 1.0; 0.0 0.0], 1)
+    dfdx2(x) = derivative(f, x, [0.0 0.0; 1.0 1.0], 1)
     res(x) = sum(dfdx1(x) .+ 2 * dfdx2(x))
     grad = DI.gradient(res, backend, some_matrix)
     @test grad ≈ [1 0; 0 2] * exp.(some_matrix)

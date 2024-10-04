@@ -8,7 +8,7 @@ Representation of Taylor polynomials in array mode.
 # Fields
 
 - `value::A`: zeroth order coefficient
-- `partials::NTuple{P, T}`: i-th element of this stores the i-th derivative
+- `partials::NTuple{P, A}`: i-th element of this stores the i-th derivative
 """
 struct TaylorArray{T, N, A <: AbstractArray{T, N}, P} <:
        AbstractArray{TaylorScalar{T, P}, N}
@@ -24,15 +24,28 @@ struct TaylorArray{T, N, A <: AbstractArray{T, N}, P} <:
 end
 
 function TaylorArray{P}(value::A) where {A <: AbstractArray, P}
-    TaylorArray(value, ntuple(i -> zeros(eltype(value), size(value)), Val(P)))
+    TaylorArray(value, ntuple(i -> broadcast(zero, value), Val(P)))
 end
 
 function TaylorArray{P}(value::A, seed::A) where {A <: AbstractArray, P}
     TaylorArray(
-        value, ntuple(i -> i == 1 ? seed : zeros(eltype(value), size(value)), Val(P)))
+        value, ntuple(i -> i == 1 ? seed : broadcast(zero, seed), Val(P)))
 end
 
-# Indexing
+# Necessary AbstractArray interface methods for TaylorArray to work
+# https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-array
+
+## 1. Invariant
+for op in Symbol[:size, :strides, :eachindex, :IndexStyle]
+    @eval Base.$(op)(x::TaylorArray) = Base.$(op)(value(x))
+end
+
+## 2. Indexing
+function Base.similar(a::TaylorArray, ::Type{<:TaylorScalar{T}}, dims::Dims) where {T}
+    new_value = similar(value(a), T, dims)
+    new_partials = map(p -> similar(p, T, dims), partials(a))
+    return TaylorArray(new_value, new_partials)
+end
 
 Base.@propagate_inbounds function Base.getindex(a::TaylorArray, i::Int...)
     new_value = value(a)[i...]
@@ -55,7 +68,31 @@ Base.@propagate_inbounds function Base.setindex!(
     return a
 end
 
-# Invariant
-for op in Symbol[:size, :eachindex, :IndexStyle]
-    @eval Base.$(op)(x::TaylorArray) = Base.$(op)(value(x))
+## 3. Broadcasting
+struct TaylorArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
+TaylorArrayStyle(::Val{N}) where {N} = TaylorArrayStyle{N}()
+TaylorArrayStyle{M}(::Val{N}) where {N, M} = TaylorArrayStyle{N}()
+
+Base.BroadcastStyle(::Type{<:TaylorArray{T, N}}) where {T, N} = TaylorArrayStyle{N}()
+# This is added to make Zygote custom broadcasting work
+# However, we might implement custom broadcasting semantics for TaylorArray in the future
+# function Base.BroadcastStyle(::Type{<:Array{
+#         <:Tuple{TaylorScalar{T, P}, Any}, N}}) where {T, N, P}
+#     TaylorArrayStyle{N}()
+# end
+
+function Base.similar(
+        bc::Broadcast.Broadcasted{<:TaylorArrayStyle}, ::Type{ElType}) where {ElType}
+    A = find_taylor(bc)
+    similar(A, ElType, axes(bc))
 end
+
+find_taylor(bc::Broadcast.Broadcasted) = find_taylor(bc.args)
+find_taylor(args::Tuple) = find_taylor(find_taylor(args[1]), Base.tail(args))
+find_taylor(x) = x
+find_taylor(::Tuple{}) = nothing
+find_taylor(a::TaylorArray, rest) = a
+function find_taylor(a::Array{<:Tuple{TaylorScalar{T, P}, Any}, N}, rest) where {T, P, N}
+    TaylorArray{P}(zeros(T, size(a)))
+end
+find_taylor(::Any, rest) = find_taylor(rest)

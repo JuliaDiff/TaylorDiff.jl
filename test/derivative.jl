@@ -10,7 +10,7 @@
     @test derivative(g1, [1.0, 2.0], [1.0, 0.0], 1) ≈ 2.0
 
     h1(x) = sum(x, dims = 1)
-    @test derivative(h1, [1.0 2.0; 2.0 3.0], [1.0, 1.0], 1) ≈ [2.0 2.0]
+    @test derivative(h1, [1.0 2.0; 2.0 3.0], [1.0 1.0; 1.0 1.0], 1) ≈ [2.0 2.0]
 end
 
 @testset "I-function, O-derivative" begin
