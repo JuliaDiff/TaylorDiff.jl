@@ -33,13 +33,14 @@ function rrule(::typeof(partials), t::TaylorArray{T, N, A, P}) where {N, T, A, P
     return partials(t), value_pullback
 end
 
-function rrule(::typeof(extract_derivative), t::TaylorScalar{T, N},
-        i::Integer) where {N, T}
+function rrule(::typeof(extract_derivative), t::TaylorScalar{T, P},
+        q::Val{Q}) where {T, P, Q}
     function extract_derivative_pullback(d̄)
-        NoTangent(), TaylorScalar(zero(T), ntuple(j -> j === i ? d̄ : zero(T), Val(N))),
+        NoTangent(),
+        TaylorScalar(zero(T), ntuple(j -> j === Q ? d̄ * factorial(Q) : zero(T), Val(P))),
         NoTangent()
     end
-    return extract_derivative(t, i), extract_derivative_pullback
+    return extract_derivative(t, q), extract_derivative_pullback
 end
 
 function rrule(::typeof(Base.getindex), a::TaylorArray, i::Int...)

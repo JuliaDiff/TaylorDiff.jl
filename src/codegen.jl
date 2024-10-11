@@ -1,5 +1,5 @@
 for unary_func in (
-    +, -, deg2rad, rad2deg,
+    deg2rad, rad2deg,
     sinh, cosh, tanh,
     asin, acos, atan, asec, acsc, acot,
     log, log10, log1p, log2,
