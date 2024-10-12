@@ -2,11 +2,8 @@ import Base: abs, abs2
 import Base: exp, exp2, exp10, expm1, log, log2, log10, log1p, inv, sqrt, cbrt
 import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch, sinpi, cospi
 import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, asech, acsch
-import Base: sinc, cosc
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
-import Base: hypot, max, min
-import Base: tail
-import Base: convert, promote_rule
+import Base: sinc, cosc, hypot, max, min, literal_pow
 
 Taylor = Union{TaylorScalar, TaylorArray}
 
@@ -22,7 +19,7 @@ Taylor = Union{TaylorScalar, TaylorArray}
 
 @inline flatten(t::Taylor) = (value(t), partials(t)...)
 
-function promote_rule(::Type{TaylorScalar{T, P}},
+function Base.promote_rule(::Type{TaylorScalar{T, P}},
         ::Type{S}) where {T, S, P}
     TaylorScalar{promote_type(T, S), P}
 end
@@ -35,77 +32,48 @@ end
 
 ## Delegated
 
-@inline +(t::TaylorScalar) = t
 @inline -(t::TaylorScalar) = TaylorScalar(-value(t), .-partials(t))
 @inline sqrt(t::TaylorScalar) = t^0.5
 @inline cbrt(t::TaylorScalar) = ^(t, 1 / 3)
 @inline inv(t::TaylorScalar) = one(t) / t
+@inline sinpi(t::TaylorScalar) = sin(π * t)
+@inline cospi(t::TaylorScalar) = cos(π * t)
+@inline exp10(t::TaylorScalar) = exp(t * log(10))
+@inline exp2(t::TaylorScalar) = exp(t * log(2))
+@inline expm1(t::TaylorScalar) = TaylorScalar(expm1(value(t)), partials(exp(t)))
 
-for func in (:exp, :expm1, :exp2, :exp10)
-    @eval @generated function $func(t::TaylorScalar{T, P}) where {T, P}
-        v = [Symbol("v$i") for i in 0:P]
-        ex = quote
-            $(Expr(:meta, :inline))
-            p = value(t)
-            f = flatten(t)
-            v0 = $($(QuoteNode(func)) == :expm1 ? :(exp(p)) : :($$func(p)))
+## Hand-written exp, sin, cos
+
+@to_static function exp(t::TaylorScalar{T, P}) where {P, T}
+    f = flatten(t)
+    v[0] = exp(f[0])
+    for i in 1:P
+        v[i] = zero(T)
+        for j in 0:(i - 1)
+            v[i] += (i - j) * v[j] * f[i - j]
         end
-        for i in 1:P
-            push!(ex.args,
-                :(
-                    $(v[begin + i]) = +($([:($(i - j) * $(v[begin + j]) *
-                                             f[begin + $(i - j)])
-                                           for j in 0:(i - 1)]...)) / $i
-                ))
-            if $(QuoteNode(func)) == :exp2
-                push!(ex.args, :($(v[begin + i]) *= log(2)))
-            elseif $(QuoteNode(func)) == :exp10
-                push!(ex.args, :($(v[begin + i]) *= log(10)))
-            end
-        end
-        if $(QuoteNode(func)) == :expm1
-            push!(ex.args, :(v0 = expm1(f[1])))
-        end
-        push!(ex.args, :(TaylorScalar(tuple($(v...)))))
-        return :(@inbounds $ex)
+        v[i] /= i
     end
+    return TaylorScalar(v)
 end
 
 for func in (:sin, :cos)
-    @eval @generated function $func(t::TaylorScalar{T, P}) where {T, P}
-        s = [Symbol("s$i") for i in 0:P]
-        c = [Symbol("c$i") for i in 0:P]
-        ex = quote
-            $(Expr(:meta, :inline))
-            f = flatten(t)
-            s0 = sin(f[1])
-            c0 = cos(f[1])
-        end
+    @eval @to_static function $func(t::TaylorScalar{T, P}) where {T, P}
+        f = flatten(t)
+        s[0], c[0] = sincos(f[0])
         for i in 1:P
-            push!(ex.args,
-                :($(s[begin + i]) = +($([:(
-                                             $(i - j) * $(c[begin + j]) *
-                                             f[begin + $(i - j)]) for j in 0:(i - 1)]...)) /
-                                    $i)
-            )
-            push!(ex.args,
-                :($(c[begin + i]) = +($([:(
-                                             $(i - j) * $(s[begin + j]) *
-                                             f[begin + $(i - j)]) for j in 0:(i - 1)]...)) /
-                                    -$i)
-            )
+            s[i] = zero(T)
+            c[i] = zero(T)
+            for j in 0:(i - 1)
+                s[i] += (i - j) * c[j] * f[i - j]
+                c[i] -= (i - j) * s[j] * f[i - j]
+            end
+            s[i] /= i
+            c[i] /= i
         end
-        if $(QuoteNode(func)) == :sin
-            push!(ex.args, :(TaylorScalar(tuple($(s...)))))
-        else
-            push!(ex.args, :(TaylorScalar(tuple($(c...)))))
-        end
-        return :(@inbounds $ex)
+        return $(func == :sin ? :(TaylorScalar(s)) : :(TaylorScalar(c)))
     end
 end
-
-@inline sinpi(t::TaylorScalar) = sin(π * t)
-@inline cospi(t::TaylorScalar) = cos(π * t)
 
 # Binary
 
@@ -136,63 +104,51 @@ end
 @inline -(a::TaylorScalar, b::TaylorScalar) = TaylorScalar(
     value(a) - value(b), map(-, partials(a), partials(b)))
 
-@generated function *(a::TaylorScalar{T, N}, b::TaylorScalar{T, N}) where {T, N}
-    return quote
-        $(Expr(:meta, :inline))
-        va, vb = flatten(a), flatten(b)
-        v = tuple($([:(
-                         +($([:(va[begin + $j] * vb[begin + $(i - j)]) for j in 0:i]...))
-                     ) for i in 0:N]...))
-        @inbounds TaylorScalar(v)
+@to_static function *(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
+    va, vb = flatten(a), flatten(b)
+    for i in 0:P
+        v[i] = zero(T)
+        for j in 0:i
+            v[i] += va[j] * vb[i - j]
+        end
     end
+    TaylorScalar(v)
 end
 
-@generated function /(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
-    v = [Symbol("v$i") for i in 0:P]
-    ex = quote
-        $(Expr(:meta, :inline))
-        va, vb = flatten(a), flatten(b)
-        v0 = va[1] / vb[1]
-        b0 = vb[1]
-    end
+@to_static function /(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
+    va, vb = flatten(a), flatten(b)
+    v[0] = va[0] / vb[0]
     for i in 1:P
-        push!(ex.args,
-            :(
-                $(v[begin + i]) = (va[begin + $i] -
-                                   +($([:($(v[begin + j]) *
-                                          vb[begin + $(i - j)])
-                                        for j in 0:(i - 1)]...))) / b0
-            )
-        )
+        v[i] = va[i]
+        for j in 0:(i - 1)
+            v[i] -= vb[i - j] * v[j]
+        end
+        v[i] /= vb[0]
     end
-    push!(ex.args, :(TaylorScalar(tuple($(v...)))))
-    return :(@inbounds $ex)
+    TaylorScalar(v)
 end
+
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{0}) = one(x)
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{1}) = x
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{2}) = x*x
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{3}) = x*x*x
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-1}) = inv(x)
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-2}) = (i=inv(x); i*i)
 
 for R in (Integer, Real)
-    @eval @generated function ^(t::TaylorScalar{T, P}, n::S) where {S <: $R, T, P}
-        v = [Symbol("v$i") for i in 0:P]
-        ex = quote
-            $(Expr(:meta, :inline))
-            f = flatten(t)
-            f0 = f[1]
-            v0 = ^(f0, n)
-        end
+    @eval @to_static function ^(t::TaylorScalar{T, P}, n::S) where {S <: $R, T, P}
+        f = flatten(t)
+        v[0] = f[0]^n
         for i in 1:P
-            push!(ex.args,
-                :(
-                    $(v[begin + i]) = +($([:(
-                                               (n * $(i - j) - $j) * $(v[begin + j]) *
-                                               f[begin + $(i - j)]
-                                           ) for j in 0:(i - 1)]...)) / ($i * f0)
-                ))
+            v[i] = zero(T)
+            for j in 0:(i - 1)
+                v[i] += (n * (i - j) - j) * v[j] * f[i - j]
+            end
+            v[i] /= (i * f[0])
         end
-        push!(ex.args, :(TaylorScalar(tuple($(v...)))))
-        return :(@inbounds $ex)
+        return TaylorScalar(v)
     end
-    @eval function ^(a::S, t::TaylorScalar{T, N}) where {S <: $R, T, N}
-        exp(t * log(a))
-    end
+    @eval ^(a::S, t::TaylorScalar) where {S <: $R} = exp(t * log(a))
 end
 
 ^(t::TaylorScalar, s::TaylorScalar) = exp(s * log(t))

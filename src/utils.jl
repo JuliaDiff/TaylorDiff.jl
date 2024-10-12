@@ -2,6 +2,8 @@ using ChainRules
 using ChainRulesCore
 using Symbolics: @variables, @rule, unwrap, isdiv
 using SymbolicUtils.Code: toexpr
+using MacroTools
+using MacroTools: prewalk, postwalk
 
 """
 Pick a strategy for raising the derivative of a function. If the derivative is like 1 over something, raise with the division rule; otherwise, raise with the multiplication rule.
@@ -44,4 +46,65 @@ function define_unary_function(func, m)
             $$raiser(f0, df, t)
         end
     end
+end
+
+tuplen(::Type{NTuple{N, T}}) where {N, T} = N
+function interpolate(ex::Expr, dict)
+    func = ex.args[1]
+    args = map(x -> interpolate(x, dict), ex.args[2:end])
+    getproperty(Base, func)(args...)
+end
+interpolate(ex::Symbol, dict) = get(dict, ex, ex)
+interpolate(ex::Any, _) = ex
+
+function unroll_loop(start, stop, var, body, d)
+    ex = Expr(:block)
+    start = interpolate(start, d)
+    stop = interpolate(stop, d)
+    for i in start:stop
+        iter = prewalk(x -> x === var ? i : x, body)
+        args = filter(x -> !(x isa LineNumberNode), iter.args)
+        append!(ex.args, args)
+    end
+    ex
+end
+
+function process(d, expr)
+    # Unroll loops
+    expr = prewalk(expr) do x
+        @match x begin
+            for var_ in start_:stop_
+                body_
+            end => unroll_loop(start, stop, var, body, d)
+            _ => x
+        end
+    end
+    # Modify indices
+    magic_names = (:v, :s, :c)
+    expr = postwalk(expr) do x
+        @match x begin
+            a_[idx_] => a in magic_names ? Symbol(a, idx) : :($a[begin + $idx])
+            TaylorScalar(v_) => :(TaylorScalar(tuple($([Symbol(v, idx) for idx in 0:d[:P]]...))))
+            _ => x
+        end
+    end
+    # Add inline meta
+    return quote
+        $(Expr(:meta, :inline))
+        $expr
+    end
+end
+
+macro to_static(def)
+    dict = splitdef(def)
+    pairs = Any[]
+    for symbol in dict[:whereparams]
+        push!(pairs, :($(QuoteNode(symbol)) => $symbol))
+    end
+    esc(quote
+        @generated function $(dict[:name])($(dict[:args]...)) where {$(dict[:whereparams]...)}
+            d = Dict($(pairs...))
+            process(d, $(QuoteNode(dict[:body])))
+        end
+    end)
 end

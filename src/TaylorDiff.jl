@@ -14,10 +14,10 @@ can_taylorize(::Type) = false
                         " If the type behaves as a scalar, define TaylorDiff.can_taylorize(::Type{$V}) = true."))
 end
 
+include("utils.jl")
 include("scalar.jl")
 include("array.jl")
 include("primitive.jl")
-include("utils.jl")
 include("codegen.jl")
 include("derivative.jl")
 include("chainrules.jl")
