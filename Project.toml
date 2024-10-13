@@ -23,6 +23,7 @@ TaylorDiffZygoteExt = ["Zygote"]
 [compat]
 ChainRules = "1"
 ChainRulesCore = "1"
+MacroTools = "0.5"
 NNlib = "0.9"
 SpecialFunctions = "2"
 SymbolicUtils = "3"
