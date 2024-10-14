@@ -1,3 +1,6 @@
+# This file is a bunch of compiler magics to cleverly define pushforward rules.
+# If you are only interested in data structures and pushforward rules, you can skip this file.
+
 using ChainRules
 using ChainRulesCore
 using Symbolics: @variables, @rule, unwrap, isdiv
@@ -6,7 +9,9 @@ using MacroTools
 using MacroTools: prewalk, postwalk
 
 """
-Pick a strategy for raising the derivative of a function. If the derivative is like 1 over something, raise with the division rule; otherwise, raise with the multiplication rule.
+Pick a strategy for raising the derivative of a function.
+If the derivative is like 1 over something, raise with the division rule;
+otherwise, raise with the multiplication rule.
 """
 function get_term_raiser(func)
     @variables z
@@ -95,7 +100,16 @@ function process(d, expr)
     end
 end
 
-macro to_static(def)
+"""
+    immutable(def)
+
+Transform a function definition to a @generated function.
+
+1. Allocations are removed by replacing the output with scalar variables;
+2. Loops are unrolled;
+3. Indices are modified to use 1-based indexing;
+"""
+macro immutable(def)
     dict = splitdef(def)
     pairs = Any[]
     for symbol in dict[:whereparams]

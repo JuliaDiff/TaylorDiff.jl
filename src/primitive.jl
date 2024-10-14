@@ -44,7 +44,7 @@ end
 
 ## Hand-written exp, sin, cos
 
-@to_static function exp(t::TaylorScalar{T, P}) where {P, T}
+@immutable function exp(t::TaylorScalar{T, P}) where {P, T}
     f = flatten(t)
     v[0] = exp(f[0])
     for i in 1:P
@@ -58,7 +58,7 @@ end
 end
 
 for func in (:sin, :cos)
-    @eval @to_static function $func(t::TaylorScalar{T, P}) where {T, P}
+    @eval @immutable function $func(t::TaylorScalar{T, P}) where {T, P}
         f = flatten(t)
         s[0], c[0] = sincos(f[0])
         for i in 1:P
@@ -104,7 +104,7 @@ end
 @inline -(a::TaylorScalar, b::TaylorScalar) = TaylorScalar(
     value(a) - value(b), map(-, partials(a), partials(b)))
 
-@to_static function *(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
+@immutable function *(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
     va, vb = flatten(a), flatten(b)
     for i in 0:P
         v[i] = zero(T)
@@ -115,7 +115,7 @@ end
     TaylorScalar(v)
 end
 
-@to_static function /(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
+@immutable function /(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
     va, vb = flatten(a), flatten(b)
     v[0] = va[0] / vb[0]
     for i in 1:P
@@ -130,13 +130,13 @@ end
 
 @inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{0}) = one(x)
 @inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{1}) = x
-@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{2}) = x*x
-@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{3}) = x*x*x
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{2}) = x * x
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{3}) = x * x * x
 @inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-1}) = inv(x)
-@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-2}) = (i=inv(x); i*i)
+@inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-2}) = (i = inv(x); i * i)
 
 for R in (Integer, Real)
-    @eval @to_static function ^(t::TaylorScalar{T, P}, n::S) where {S <: $R, T, P}
+    @eval @immutable function ^(t::TaylorScalar{T, P}, n::S) where {S <: $R, T, P}
         f = flatten(t)
         v[0] = f[0]^n
         for i in 1:P
@@ -153,14 +153,14 @@ end
 
 ^(t::TaylorScalar, s::TaylorScalar) = exp(s * log(t))
 
-@inline function lower(t::TaylorScalar{T, P}) where {T, P}
+@inline function differentiate(t::TaylorScalar{T, P}) where {T, P}
     s = partials(t)
     TaylorScalar(ntuple(i -> s[i] * i, Val(P)))
 end
-@inline function higher(t::TaylorScalar{T, P}) where {T, P}
+@inline function integrate(t::TaylorScalar{T, P}, C::T) where {T, P}
     s = flatten(t)
-    ntuple(i -> s[i] / i, Val(P + 1))
+    TaylorScalar(C, ntuple(i -> s[i] / i, Val(P + 1)))
 end
-@inline raise(f, df::TaylorScalar, t) = TaylorScalar(f, higher(lower(t) * df))
-@inline raise(f, df::Number, t) = df * t
-@inline raiseinv(f, df, t) = TaylorScalar(f, higher(lower(t) / df))
+@inline raise(f0, d::TaylorScalar, t) = integrate(differentiate(t) * d, f0)
+@inline raise(f0, d::Number, t) = d * t
+@inline raiseinv(f0, d, t) = integrate(differentiate(t) / d, f0)

@@ -40,6 +40,7 @@ Convenience function: construct a Taylor polynomial with zeroth and first order 
 TaylorScalar{P}(value::T, seed::T) where {T, P} = TaylorScalar(
     value, ntuple(i -> i == 1 ? seed : zero(T), Val(P)))
 
+# Truncate or extend the order of a Taylor polynomial.
 function TaylorScalar{P}(t::TaylorScalar{T, Q}) where {T, P, Q}
     v = value(t)
     p = partials(t)
