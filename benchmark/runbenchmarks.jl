@@ -7,6 +7,7 @@ using BenchmarkTools: Trial, TrialEstimate, Parameters
 import JSON: lower, json
 using Dates
 using HTTP: put
+using Random
 
 dict(x) = Dict(name => lower(getfield(x, name)) for name in fieldnames(typeof(x)))
 lower(results::BenchmarkResults) = dict(results)
@@ -26,7 +27,7 @@ if "BUILDKITE" in keys(ENV)
     body["branch"] = getenv("BUILDKITE_BRANCH")
     body["tag"] = getenv("BUILDKITE_TAG")
 else
-    body["commit"] = "abcdef123456"
+    body["commit"] = randstring("abcdef0123456789", 40)
     body["branch"] = "dummy"
 end
 

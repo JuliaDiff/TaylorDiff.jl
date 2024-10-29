@@ -25,8 +25,8 @@ function loss_by_finitediff(model, x)
 end
 function loss_by_taylordiff(model, x)
     f(x) = trial(model, x)
-    error = derivative(f, x, Float32[1, 0], Val(3)) +
-            derivative(f, x, Float32[0, 1], Val(3)) +
+    error = derivative(f, x, Float32[1, 0], Val(2)) +
+            derivative(f, x, Float32[0, 1], Val(2)) +
             sin(π * x[1]) * sin(π * x[2])
     abs2(error)
 end

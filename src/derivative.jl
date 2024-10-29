@@ -2,8 +2,7 @@ export derivative, derivative!, derivatives
 
 # Added to help Zygote infer types
 @inline make_seed(x::T, l::T, ::Val{P}) where {T <: Real, P} = TaylorScalar{P}(x, l)
-@inline make_seed(x::A, l::A, ::Val{P}) where {A <: AbstractArray, P} = broadcast(
-    make_seed, x, l, Val{P}())
+@inline make_seed(x::A, l::A, p) where {A <: AbstractArray} = broadcast(make_seed, x, l, p)
 
 """
     derivative(f, x, ::Val{P})
@@ -14,12 +13,9 @@ Computes `P`-th directional derivative of `f` w.r.t. vector `x` in direction `l`
 """
 function derivative end
 
-@inline derivative(f, x::Number, p::Val{P}) where {P} = extract_derivative(
-    derivatives(f, x, one(x), p), p)
-@inline derivative(f, x, l, p::Val{P}) where {P} = extract_derivative(
-    derivatives(f, x, l, p), p)
-@inline derivative(f!, y, x, l, p::Val{P}) where {P} = extract_derivative(
-    derivatives(f!, y, x, l, p), p)
+@inline derivative(f, x::Number, p) = extract_derivative(derivatives(f, x, one(x), p), p)
+@inline derivative(f, x, l, p) = extract_derivative(derivatives(f, x, l, p), p)
+@inline derivative(f!, y, x, l, p) = extract_derivative(derivatives(f!, y, x, l, p), p)
 
 """
     derivative!(result, f, x, l, ::Val{P})
@@ -29,9 +25,9 @@ In-place derivative calculation APIs. `result` is expected to be pre-allocated a
 """
 function derivative! end
 
-@inline derivative!(result, f, x, l, p::Val{P}) where {P} = extract_derivative!(
+@inline derivative!(result, f, x, l, p) = extract_derivative!(
     result, derivatives(f, x, l, p), p)
-@inline derivative!(result, f!, y, x, l, p::Val{P}) where {P} = extract_derivative!(
+@inline derivative!(result, f!, y, x, l, p) = extract_derivative!(
     result, derivatives(f!, y, x, l, p), p)
 
 """
@@ -42,7 +38,7 @@ Computes all derivatives of `f` at `x` up to order `P`.
 """
 function derivatives end
 
-@inline derivatives(f, x, l, p::Val{P}) where {P} = f(make_seed(x, l, p))
+@inline derivatives(f, x, l, p) = f(make_seed(x, l, p))
 @inline function derivatives(f!, y, x, l, p::Val{P}) where {P}
     buffer = similar(y, TaylorScalar{eltype(y), P})
     f!(buffer, make_seed(x, l, p))

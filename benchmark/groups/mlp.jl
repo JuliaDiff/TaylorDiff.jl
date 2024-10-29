@@ -16,7 +16,7 @@ function create_benchmark_mlp(mlp_conf::Tuple{Int, Int}, x::Vector{T},
     for (index, func) in enumerate(functions)
         forwarddiff[index] = @benchmarkable $func(0)
     end
-    Ns = [Val{order + 1}() for order in 1:7]
+    Ns = [Val(order) for order in 1:7]
     for (index, N) in enumerate(Ns)
         taylordiff[index] = @benchmarkable derivative($mlp, $x, $l, $N)
     end
