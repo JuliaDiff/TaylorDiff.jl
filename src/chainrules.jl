@@ -17,20 +17,21 @@ function rrule(::typeof(value), t::TaylorScalar{T, N}) where {N, T}
 end
 
 function rrule(::typeof(partials), t::TaylorScalar{T, N}) where {N, T}
-    value_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(0, v̄)
+    z = zero(T)
+    partials_pullback(v̄::NTuple{N, T}) = NoTangent(), TaylorScalar(z, v̄)
     # for structural tangent, convert to tuple
-    function value_pullback(v̄::Tangent{P, NTuple{N, T}}) where {P}
-        NoTangent(), TaylorScalar(zero(T), backing(v̄))
+    function partials_pullback(v̄::Tangent{P, NTuple{N, T}}) where {P}
+        NoTangent(), TaylorScalar(z, backing(v̄))
     end
-    function value_pullback(v̄)
-        NoTangent(), TaylorScalar(zero(T), map(x -> convert(T, x), Tuple(v̄)))
+    function partials_pullback(::ZeroTangent)
+        NoTangent(), TaylorScalar(z, ntuple(j -> zero(T), Val(N)))
     end
-    return partials(t), value_pullback
+    return partials(t), partials_pullback
 end
 
 function rrule(::typeof(partials), t::TaylorArray{T, N, A, P}) where {N, T, A, P}
-    value_pullback(v̄::NTuple{P, A}) = NoTangent(), TaylorArray(broadcast(zero, v̄[1]), v̄)
-    return partials(t), value_pullback
+    partials_pullback(v̄::NTuple{P, A}) = NoTangent(), TaylorArray(broadcast(zero, v̄[1]), v̄)
+    return partials(t), partials_pullback
 end
 
 function rrule(::typeof(extract_derivative), t::TaylorScalar{T, P},

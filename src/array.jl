@@ -96,3 +96,8 @@ function find_taylor(a::Array{<:Tuple{TaylorScalar{T, P}, Any}, N}, rest) where 
     TaylorArray{P}(zeros(T, size(a)))
 end
 find_taylor(::Any, rest) = find_taylor(rest)
+
+# function Base.copyto!(dest::TaylorArray, bc::Broadcast.Broadcasted{<:TaylorArrayStyle, Axes}) where Axes
+#     println("copyto!($(typeof(dest)), $(typeof(bc)))")
+#     error("Not implemented")
+# end

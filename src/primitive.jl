@@ -48,7 +48,6 @@ end
     f = flatten(t)
     v[0] = exp(f[0])
     for i in 1:P
-        v[i] = zero(T)
         for j in 0:(i - 1)
             v[i] += (i - j) * v[j] * f[i - j]
         end
@@ -62,8 +61,6 @@ for func in (:sin, :cos)
         f = flatten(t)
         s[0], c[0] = sincos(f[0])
         for i in 1:P
-            s[i] = zero(T)
-            c[i] = zero(T)
             for j in 0:(i - 1)
                 s[i] += (i - j) * c[j] * f[i - j]
                 c[i] -= (i - j) * s[j] * f[i - j]
@@ -107,7 +104,6 @@ end
 @immutable function *(a::TaylorScalar{T, P}, b::TaylorScalar{T, P}) where {T, P}
     va, vb = flatten(a), flatten(b)
     for i in 0:P
-        v[i] = zero(T)
         for j in 0:i
             v[i] += va[j] * vb[i - j]
         end
@@ -140,7 +136,6 @@ for R in (Integer, Real)
         f = flatten(t)
         v[0] = f[0]^n
         for i in 1:P
-            v[i] = zero(T)
             for j in 0:(i - 1)
                 v[i] += (n * (i - j) - j) * v[j] * f[i - j]
             end
@@ -164,3 +159,9 @@ end
 @inline raise(f0, d::TaylorScalar, t) = integrate(differentiate(t) * d, f0)
 @inline raise(f0, d::Number, t) = d * t
 @inline raiseinv(f0, d, t) = integrate(differentiate(t) / d, f0)
+
+# Array primitives
+
+# Pass-through linear operators
+
+# *(a::AbstractMatrix{T}, b::TaylorArray{T}) where {T} = TaylorArray(a * value(b), map(p -> a * p, partials(b)))
