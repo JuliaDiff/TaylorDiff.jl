@@ -31,9 +31,9 @@ TaylorDiff.jl is fast! See our dedicated [benchmarks](https://benchmark.tansongc
 using TaylorDiff
 
 x = 0.1
-derivative(sin, x, 10) # scalar derivative
+derivative(sin, x, Val(10)) # scalar derivative
 v, direction = [3.0, 4.0], [1.0, 0.0]
-derivative(x -> sum(exp.(x)), v, direction, 2) # directional derivative
+derivative(x -> sum(exp.(x)), v, direction, Val(2)) # directional derivative
 ```
 
 Please see our [documentation](https://juliadiff.org/TaylorDiff.jl) for more details.

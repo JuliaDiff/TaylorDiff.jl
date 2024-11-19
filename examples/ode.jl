@@ -37,7 +37,7 @@ display(different_time(ic, p_true, 2e-5))
 display(just_t(0.5))
 
 #display(ForwardDiff.derivative(just_t,1.0))
-display(TaylorDiff.derivative(just_t, 1.0, 1))  #isnan error
+display(TaylorDiff.derivative(just_t, 1.0, Val(1)))  #isnan error
 #display(value_and_gradient(just_t, AutoForwardDiff(), 1.0))
 #display(value_and_gradient(just_t, AutoReverseDiff(), 1.0))
 #display(value_and_gradient(just_t, AutoEnzyme(Enzyme.Reverse), 1.0))
