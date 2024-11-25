@@ -90,6 +90,7 @@ function process(d, expr)
     expr = postwalk(expr) do x
         @match x begin
             a_[idx_] => a in magic_names ? Symbol(a, idx) : :($a[begin + $idx])
+            (a_ = b_) => (push!(known_names, a); :($a = $b))
             (a_ += b_) => a in known_names ? :($a += $b) : (push!(known_names, a); :($a = $b))
             (a_ -= b_) => a in known_names ? :($a -= $b) : (push!(known_names, a); :($a = -$b))
             TaylorScalar(v_) => :(TaylorScalar(tuple($([Symbol(v, idx) for idx in 0:d[:P]]...))))
