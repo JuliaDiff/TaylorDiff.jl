@@ -23,6 +23,8 @@ struct TaylorArray{T, N, A <: AbstractArray{T, N}, P} <:
     end
 end
 
+TaylorArray(all::NTuple{P, A}) where {A, P} = TaylorArray(all[1], all[2:end])
+
 function TaylorArray{P}(value::A) where {A <: AbstractArray, P}
     TaylorArray(value, ntuple(i -> broadcast(zero, value), Val(P)))
 end

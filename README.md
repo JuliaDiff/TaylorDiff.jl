@@ -12,6 +12,7 @@
   <br />
   <a href="https://github.com/SciML/ColPrac"><img src="https://img.shields.io/badge/contributor's%20guide-ColPrac-blueviolet" alt="ColPrac: Contributor's Guide on Collaborative Practices for Community Packages" /></a>
   <a href="https://github.com/SciML/SciMLStyle"><img src="https://img.shields.io/badge/code%20style-SciML-blueviolet" alt="SciML Code Style" /></a>
+  <a href="https://doi.org/10.5281/zenodo.14226430"><img src="https://zenodo.org/badge/563952901.svg" alt="DOI" /></a>
 </p>
 
 <p align=center>

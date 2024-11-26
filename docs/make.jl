@@ -12,9 +12,13 @@ makedocs(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://juliadiff.org/TaylorDiff.jl",
         edit_link = "main",
-        assets = String[]),
+        assets = String[]
+    ),
     pages = [
         "Home" => "index.md",
+        "Examples" => [
+            "Efficient Halley's method for nonlinear solving" => "examples/halley.md"
+        ],
         "Theory" => "theory.md",
         "API" => "api.md"
     ])

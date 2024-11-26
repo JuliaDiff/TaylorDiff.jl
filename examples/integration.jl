@@ -1,4 +1,4 @@
-using TaylorDiff
+using TaylorDiff: TaylorDiff, TaylorScalar, TaylorArray, make_seed, value, partials, flatten
 using TaylorSeries
 using TaylorIntegration: jetcoeffs!
 using BenchmarkTools
@@ -6,78 +6,71 @@ using BenchmarkTools
 """
 No magic, just a type-stable way to generate a new object since TaylorScalar is immutable
 """
-function update_coefficient(x::TaylorScalar{T, N}, index::Integer, value::T) where {T, N}
-    return TaylorScalar(ntuple(i -> (i == index ? value : x.value[i]), Val{N}()))
+function setindex(x::TaylorScalar{T, P}, index, d) where {T, P}
+    v = flatten(x)
+    ntuple(i -> i == index + 1 ? d : v[i], Val(P + 1)) |> TaylorScalar
 end
 
-"""
-Computes the taylor integration of order N - 1, i.e. N = order + 1
+function setindex(x::TaylorArray{T, N, A, P}, index, d) where {T, N, A, P}
+    v = flatten(x)
+    ntuple(i -> i == index + 1 ? d : v[i], Val(P + 1)) |> TaylorArray
+end
 
-eqsdiff: RHS
-t: constructed by TaylorScalar{T, N}(t0, 1), which means unit perturbation
-x0: initial value
+
 """
-function jetcoeffs_taylordiff(eqsdiff::Function, t::TaylorScalar{T, N}, x0::U,
-        params) where
-        {T <: Real, U <: Number, N}
-    x = TaylorScalar{U, N}(x0) # x.values[1] is defined, others are 0
-    for index in 1:(N - 1) # computes x.values[index + 1]
-        f = eqsdiff(x, params, t)
-        df = TaylorDiff.extract_derivative(f, index)
-        x = update_coefficient(x, index + 1, df)
+Computes the taylor integration of order P
+
+- `f`: ODE function
+- `t`: constructed by TaylorScalar{P}(t0, one(t0))
+- `x0`: initial value
+- `p`: parameters
+"""
+function my_jetcoeffs(f, t::TaylorScalar{T, P}, x0, p) where {T, P}
+    x = x0 isa AbstractArray ? TaylorArray{P}(x0) : TaylorScalar{P}(x0)
+    for index in 1:P # computes x.partials[index]
+        fx = f(x, p, t)
+        d = index == 1 ? value(fx) : partials(fx)[index - 1] / index
+        x = setindex(x, index, d)
     end
     x
 end
 
 """
-Computes the taylor integration of order N - 1, i.e. N = order + 1
+Computes the taylor integration of order P
 
-eqsdiff!: RHS, in non-allocation form
-t: constructed by TaylorScalar{T, N}(t0, 1), which means unit perturbation
-x0: initial value
+- `f!`: ODE function, in non-allocating form
+- `t`: constructed by TaylorScalar{P}(t0, one(t0))
+- `x0`: initial value
+- `p`: parameters
 """
-function jetcoeffs_array_taylordiff(
-        eqsdiff!::Function, t::TaylorScalar{T, N}, x0::AbstractArray{U, D},
-        params) where
-        {T <: Real, U <: Number, N, D}
-    x = map(TaylorScalar{U, N}, x0) # x.values[1] is defined, others are 0
-    f = similar(x)
-    for index in 1:(N - 1) # computes x.values[index + 1]
-        eqsdiff!(f, x, params, t)
-        df = TaylorDiff.extract_derivative.(f, index)
-        x = update_coefficient.(x, index + 1, df)
+function my_jetcoeffs!(f!, t::TaylorScalar{T, P}, x0, p) where {T, P}
+    x = x0 isa AbstractArray ? TaylorArray{P}(x0) : TaylorScalar{P}(x0)
+    out = similar(x)
+    for index in 1:P # computes x.partials[index]
+        f!(out, x, p, t)
+        d = index == 1 ? value(out) : partials(out)[index - 1] / index
+        x = setindex(x, index, d)
     end
     x
-end
-
-"""
-In TaylorDiff.jl, the polynomial coefficients are just the n-th order derivatives,
-not normalized by n!. So to compare with TaylorSeries.jl, one need to normalize
-"""
-function normalize_taylordiff_coeffs(t::TaylorScalar)
-    return [x / factorial(i - 1) for (i, x) in enumerate(t.value)]
 end
 
 function scalar_test()
-    rhs(x, p, t) = x * x
-
+    f(x, p, t) = x * x
     x0 = 0.1
     t0 = 0.0
-    order = 6
-    N = 7 # N = order + 1
+    P = 6
 
     # TaylorIntegration test
-    t = t0 + Taylor1(typeof(t0), order)
-    x = Taylor1(x0, order)
-    @btime jetcoeffs!($rhs, $t, $x, nothing)
+    t = t0 + Taylor1(typeof(t0), P)
+    x = Taylor1(x0, P)
+    @btime jetcoeffs!($f, $t, $x, nothing)
 
     # TaylorDiff test
-    td = TaylorScalar{typeof(t0), N}(t0, one(t0))
-    @btime jetcoeffs_taylordiff($rhs, $td, $x0, nothing)
+    td = TaylorScalar{P}(t0, one(t0))
+    @btime my_jetcoeffs($f, $td, $x0, nothing)
 
-    result = jetcoeffs_taylordiff(rhs, td, x0, nothing)
-    normalized = normalize_taylordiff_coeffs(result)
-    @assert x.coeffs ≈ normalized
+    result = my_jetcoeffs(f, td, x0, nothing)
+    @assert x.coeffs ≈ collect(flatten(result))
 end
 
 function array_test()
@@ -89,21 +82,20 @@ function array_test()
     end
     u0 = [1.0; 0.0; 0.0]
     t0 = 0.0
-    order = 6
-    N = 7
+    P = 6
+
     # TaylorIntegration test
-    t = t0 + Taylor1(typeof(t0), order)
-    u = [Taylor1(x, order) for x in u0]
+    t = t0 + Taylor1(typeof(t0), P)
+    u = [Taylor1(x, P) for x in u0]
     du = similar(u)
     uaux = similar(u)
     @btime jetcoeffs!($lorenz, $t, $u, $du, $uaux, nothing)
 
     # TaylorDiff test
-    td = TaylorScalar{typeof(t0), N}(t0, one(t0))
-    @btime jetcoeffs_array_taylordiff($lorenz, $td, $u0, nothing)
-    result = jetcoeffs_array_taylordiff(lorenz, td, u0, nothing)
-    normalized = normalize_taylordiff_coeffs.(result)
+    td = TaylorScalar{P}(t0, one(t0))
+    @btime my_jetcoeffs!($lorenz, $td, $u0, nothing)
+    result = my_jetcoeffs!(lorenz, td, u0, nothing)
     for i in eachindex(u)
-        @assert u[i].coeffs ≈ normalized[i]
+        @assert u[i].coeffs ≈ collect(flatten(result[i]))
     end
 end
