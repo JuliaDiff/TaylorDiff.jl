@@ -30,7 +30,9 @@ function rrule(::typeof(partials), t::TaylorScalar{T, N}) where {N, T}
 end
 
 function rrule(::typeof(partials), t::TaylorArray{T, N, A, P}) where {N, T, A, P}
-    partials_pullback(v̄::NTuple{P, A}) = NoTangent(), TaylorArray(broadcast(zero, v̄[1]), v̄)
+    function partials_pullback(v̄::NTuple{P, A})
+        NoTangent(), TaylorArray(broadcast(zero, v̄[1]), v̄)
+    end
     return partials(t), partials_pullback
 end
 

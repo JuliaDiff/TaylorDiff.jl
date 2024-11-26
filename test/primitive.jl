@@ -50,10 +50,10 @@ end
     # end
 end
 
-@testset "Multi-argument functions" begin 
-    @test derivative(x -> 1 + 1/x, 1.0, Val(1))≈-1.0 rtol=1e-6
-    @test derivative(x -> (x+1)/x, 1.0, Val(1))≈-1.0 rtol=1e-6
-    @test derivative(x -> x/x, 1.0, Val(1))≈ 0.0 rtol=1e-6
+@testset "Multi-argument functions" begin
+    @test derivative(x -> 1 + 1 / x, 1.0, Val(1))≈-1.0 rtol=1e-6
+    @test derivative(x -> (x + 1) / x, 1.0, Val(1))≈-1.0 rtol=1e-6
+    @test derivative(x -> x / x, 1.0, Val(1))≈0.0 rtol=1e-6
 end
 
 @testset "Corner cases" begin
