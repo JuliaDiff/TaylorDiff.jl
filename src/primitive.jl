@@ -13,7 +13,7 @@ Taylor = Union{TaylorScalar, TaylorArray}
                                                                          $(factorial(P)))
 @inline extract_derivative(a::AbstractArray{<:TaylorScalar}, p) = map(
     t -> extract_derivative(t, p), a)
-@inline extract_derivative(_, p) = false
+@inline extract_derivative(result, p) = zero(result)
 @inline extract_derivative!(result, a::AbstractArray{<:TaylorScalar}, p) = map!(
     t -> extract_derivative(t, p), result, a)
 
