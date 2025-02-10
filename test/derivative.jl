@@ -26,6 +26,8 @@ end
 @testset "O-function, I-derivative" begin
     g(x) = x .^ 2
     @test derivative!(zeros(2), g, [1.0, 2.0], [1.0, 0.0], Val(1)) ≈ [2.0, 0.0]
+    gzero(x) = [1.0, 1.0]
+    @test derivative!(zeros(2), gzero, [1.0, 2.0], [1.0, 0.0], Val(1)) == [0.0, 0.0]
 end
 
 @testset "I-function, I-derivative" begin
