@@ -3,7 +3,7 @@ import Base: exp, exp2, exp10, expm1, log, log2, log10, log1p, inv, sqrt, cbrt
 import Base: sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, coth, sech, csch, sinpi, cospi
 import Base: asin, acos, atan, acot, asec, acsc, asinh, acosh, atanh, acoth, asech, acsch
 import Base: +, -, *, /, \, ^, >, <, >=, <=, ==
-import Base: sinc, cosc, hypot, max, min, literal_pow
+import Base: sinc, cosc, hypot, max, min, literal_pow, sincos
 
 Taylor = Union{TaylorScalar, TaylorArray}
 
@@ -71,6 +71,8 @@ for func in (:sin, :cos)
         return $(func == :sin ? :(TaylorScalar(s)) : :(TaylorScalar(c)))
     end
 end
+
+sincos(t::TaylorScalar) = (sin(t), cos(t))
 
 # Binary
 
