@@ -16,7 +16,6 @@ function setindex(x::TaylorArray{T, N, A, P}, index, d) where {T, N, A, P}
     ntuple(i -> i == index + 1 ? d : v[i], Val(P + 1)) |> TaylorArray
 end
 
-
 """
 Computes the taylor integration of order P
 
