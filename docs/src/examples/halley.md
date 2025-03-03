@@ -6,13 +6,17 @@ Say we have a system of $n$ equations with $n$ unknowns $f(x)=0$, and $f\in \mat
 
 Given a initial guess $x_0$, Newton's method finds a solution by iterating like
 
-$$x_{i+1}=x_i-J(x_i)^{-1}f(x_i)$$
+```math
+x_{i+1}=x_i-J(x_i)^{-1}f(x_i)
+```
 
 and this method converges quadratically.
 
 We can make it converge faster using higher-order derivative information. For example, Halley's method iterates like
 
-$$x_{i+1}=x_i-(a_i\odot a_i)\oslash(a_i-b_i/2)$$
+```math
+x_{i+1}=x_i-(a_i\odot a_i)\oslash(a_i-b_i/2)
+```
 
 where the vector multiplication and division $\odot,\oslash$ are defined element-wise, and term $a_i$ and $b_i$ are defined by $J(x_i)a_i = f(x_i)$ and $J(x_i)b_i = H(x_i)a_ia_i$.
 
