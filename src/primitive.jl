@@ -9,6 +9,8 @@ Taylor = Union{TaylorScalar, TaylorArray}
 
 @inline value(t::Taylor) = t.value
 @inline partials(t::Taylor) = t.partials
+@inline value(ts::AbstractArray{<:Taylor}) = map(value, ts)
+@inline partials(ts::AbstractArray{<:Taylor}) = map(partials, ts)
 @inline @generated extract_derivative(t::Taylor, ::Val{P}) where {P} = :(t.partials[P] *
                                                                          $(factorial(P)))
 @inline extract_derivative(a::AbstractArray{<:TaylorScalar}, p) = map(
@@ -18,6 +20,35 @@ Taylor = Union{TaylorScalar, TaylorArray}
     t -> extract_derivative(t, p), result, a)
 
 @inline flatten(t::Taylor) = (value(t), partials(t)...)
+
+get_coefficient(t::TaylorScalar, order) = order == 0 ? value(t) : partials(t)[order]
+function get_coefficient(a::AbstractArray{<:TaylorScalar}, order)
+    map(t -> get_coefficient(t, order), a)
+end
+
+function set_coefficient(t::TaylorScalar{T, P}, order, d) where {T, P}
+    order == 0 && return TaylorScalar(d, partials(t))
+    new_partials = ntuple(i -> i == order ? d : partials(t)[i], Val(P))
+    TaylorScalar(value(t), new_partials)
+end
+
+function set_coefficient(a::AbstractArray{<:TaylorScalar}, index, d)
+    for i in eachindex(a)
+        a[i] = set_coefficient(a[i], index, d[i])
+    end
+    a
+end
+
+function append_coefficient(x::TaylorScalar{T, P}, d) where {T, P}
+    TaylorScalar(value(x), ntuple(i -> i == P + 1 ? d : partials(x)[i], Val(P + 1)))
+end
+
+append_coefficient(x::AbstractArray{<:TaylorScalar}, d) = map(append_coefficient, x, d)
+
+Base.hash(t::Taylor, h::UInt) = hash(flatten(t), h)
+function Base.isequal(a::T, b::T) where {T <: Taylor}
+    isequal(value(a), value(b)) && isequal(partials(a), partials(b))
+end
 
 function Base.promote_rule(::Type{TaylorScalar{T, P}},
         ::Type{S}) where {T, S, P}

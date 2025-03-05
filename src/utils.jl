@@ -3,10 +3,16 @@
 
 using ChainRules
 using ChainRulesCore
-using Symbolics: @variables, @rule, unwrap, isdiv
+using Symbolics: Symbolics, @variables, @rule, @register_symbolic, unwrap, isdiv
 using SymbolicUtils.Code: toexpr
 using MacroTools
 using MacroTools: prewalk, postwalk
+
+@register_symbolic TaylorScalar(x, y)
+function Symbolics.Code.toexpr(t::TaylorScalar, st)
+    :($TaylorScalar($(Symbolics.Code.toexpr(t.value, st)),
+        $(Symbolics.Code.toexpr(Symbolics.Code.MakeTuple(t.partials), st))))
+end
 
 """
 Pick a strategy for raising the derivative of a function.

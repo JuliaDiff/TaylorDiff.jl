@@ -1,100 +1,111 @@
-using TaylorDiff: TaylorDiff, TaylorScalar, TaylorArray, make_seed, value, partials, flatten
-using TaylorSeries
-using TaylorIntegration: jetcoeffs!
-using BenchmarkTools
+using TaylorDiff: TaylorDiff, TaylorScalar, make_seed, flatten, get_coefficient,
+                  set_coefficient, append_coefficient
+using TaylorSeries, TaylorIntegration
+using ODEProblemLibrary, OrdinaryDiffEq, BenchmarkTools, Symbolics
+
+# There are two ways to compute the Taylor coefficients of a ODE solution
+# 1. Using naive repeated differentiation
+# 2. First simplify the expansion using Symbolics and then evaluate the expression
 
 """
-No magic, just a type-stable way to generate a new object since TaylorScalar is immutable
-"""
-function setindex(x::TaylorScalar{T, P}, index, d) where {T, P}
-    v = flatten(x)
-    ntuple(i -> i == index + 1 ? d : v[i], Val(P + 1)) |> TaylorScalar
-end
+# The first method
 
-function setindex(x::TaylorArray{T, N, A, P}, index, d) where {T, N, A, P}
-    v = flatten(x)
-    ntuple(i -> i == index + 1 ? d : v[i], Val(P + 1)) |> TaylorArray
-end
-
+For ODE u' = f(u, p, t) and initial condition (u0, t0), computes Taylor expansion of the solution `u` up to order `P` using repeated differentiation.
 """
-Computes the taylor integration of order P
-
-- `f`: ODE function
-- `t`: constructed by TaylorScalar{P}(t0, one(t0))
-- `x0`: initial value
-- `p`: parameters
-"""
-function my_jetcoeffs(f, t::TaylorScalar{T, P}, x0, p) where {T, P}
-    x = x0 isa AbstractArray ? TaylorArray{P}(x0) : TaylorScalar{P}(x0)
-    for index in 1:P # computes x.partials[index]
-        fx = f(x, p, t)
-        d = index == 1 ? value(fx) : partials(fx)[index - 1] / index
-        x = setindex(x, index, d)
+function jetcoeffs(f::ODEFunction{iip}, u0, p, t0, ::Val{P}) where {P, iip}
+    t = TaylorScalar{P}(t0, one(t0))
+    u = make_seed(u0, zero(u0), Val(P))
+    fu = copy(u)
+    for index in 1:P
+        if iip
+            f(fu, u, p, t)
+        else
+            fu = f(u, p, t)
+        end
+        d = get_coefficient(fu, index - 1) / index
+        u = set_coefficient(u, index, d)
     end
-    x
-end
-
-"""
-Computes the taylor integration of order P
-
-- `f!`: ODE function, in non-allocating form
-- `t`: constructed by TaylorScalar{P}(t0, one(t0))
-- `x0`: initial value
-- `p`: parameters
-"""
-function my_jetcoeffs!(f!, t::TaylorScalar{T, P}, x0, p) where {T, P}
-    x = x0 isa AbstractArray ? TaylorArray{P}(x0) : TaylorScalar{P}(x0)
-    out = similar(x)
-    for index in 1:P # computes x.partials[index]
-        f!(out, x, p, t)
-        d = index == 1 ? value(out) : partials(out)[index - 1] / index
-        x = setindex(x, index, d)
-    end
-    x
+    u
 end
 
 function scalar_test()
-    f(x, p, t) = x * x
-    x0 = 0.1
-    t0 = 0.0
     P = 6
-
+    prob = prob_ode_linear
+    t0 = prob.tspan[1]
     # TaylorIntegration test
-    t = t0 + Taylor1(typeof(t0), P)
-    x = Taylor1(x0, P)
-    @btime jetcoeffs!($f, $t, $x, nothing)
+    ts = t0 + Taylor1(typeof(t0), P)
+    u_ts = Taylor1(prob.u0, P)
+    @btime TaylorIntegration.jetcoeffs!($prob.f, $ts, $u_ts, $prob.p)
 
     # TaylorDiff test
-    td = TaylorScalar{P}(t0, one(t0))
-    @btime my_jetcoeffs($f, $td, $x0, nothing)
-
-    result = my_jetcoeffs(f, td, x0, nothing)
-    @assert x.coeffs ≈ collect(flatten(result))
+    @btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+    u_td = jetcoeffs(prob.f, prob.u0, prob.p, t0, Val(P))
+    @assert u_ts.coeffs ≈ collect(flatten(u_td))
 end
 
 function array_test()
-    function lorenz(du, u, p, t)
-        du[1] = 10.0(u[2] - u[1])
-        du[2] = u[1] * (28.0 - u[3]) - u[2]
-        du[3] = u[1] * u[2] - (8 / 3) * u[3]
-        return nothing
-    end
-    u0 = [1.0; 0.0; 0.0]
-    t0 = 0.0
     P = 6
-
+    prob = prob_ode_lotkavolterra
+    t0 = prob.tspan[1]
     # TaylorIntegration test
-    t = t0 + Taylor1(typeof(t0), P)
-    u = [Taylor1(x, P) for x in u0]
-    du = similar(u)
-    uaux = similar(u)
-    @btime jetcoeffs!($lorenz, $t, $u, $du, $uaux, nothing)
+    ts = t0 + Taylor1(typeof(t0), P)
+    u_ts = [Taylor1(x, P) for x in prob.u0]
+    du = similar(u_ts)
+    uaux = similar(u_ts)
+    @btime TaylorIntegration.jetcoeffs!($prob.f, $ts, $u_ts, $du, $uaux, $prob.p)
 
     # TaylorDiff test
-    td = TaylorScalar{P}(t0, one(t0))
-    @btime my_jetcoeffs!($lorenz, $td, $u0, nothing)
-    result = my_jetcoeffs!(lorenz, td, u0, nothing)
-    for i in eachindex(u)
-        @assert u[i].coeffs ≈ collect(flatten(result[i]))
+    @btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+    u_td = jetcoeffs(prob.f, prob.u0, prob.p, t0, Val(P))
+    for i in eachindex(u_ts)
+        @assert u_ts[i].coeffs ≈ collect(flatten(u_td[i]))
     end
+end
+
+"""
+# The second method
+
+For ODE u' = f(u, p, t) and initial condition (u0, t0), symbolically computes Taylor expansion of the solution `u` up to order `P`, and then builds a function to evaluate the expression.
+"""
+function build_jetcoeffs(f::ODEFunction{iip}, p, ::Val{P}, length = nothing) where {P, iip}
+    @variables t0::Real
+    u0 = isnothing(length) ? Symbolics.variable(:u0) : Symbolics.variables(:u0, 1:length)
+    if iip
+        @assert length isa Integer
+        f0 = similar(u0)
+        f(f0, u0, p, t0)
+    else
+        f0 = f(u0, p, t0)
+    end
+    u = TaylorDiff.make_seed(u0, f0, Val(1))
+    for index in 2:P
+        t = TaylorScalar{index - 1}(t0, one(t0))
+        if iip
+            fu = similar(u)
+            f(fu, u, p, t)
+        else
+            fu = f(u, p, t)
+        end
+        d = get_coefficient(fu, index - 1) / index
+        u = append_coefficient(u, d)
+    end
+    build_function(u, u0, t0; expression = Val(false), cse = true)
+end
+
+function simplify_scalar_test()
+    P = 6
+    prob = prob_ode_linear
+    t0 = prob.tspan[1]
+    @btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+    fast_jetcoeffs = build_jetcoeffs(prob.f, prob.p, Val(P))
+    @btime $fast_jetcoeffs($prob.u0, $t0)
+end
+
+function simplify_array_test()
+    P = 6
+    prob = prob_ode_lotkavolterra
+    t0 = prob.tspan[1]
+    @btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+    fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
+    @btime $fast_oop($prob.u0, $t0)
 end
