@@ -2,6 +2,7 @@ using TaylorDiff: TaylorDiff, TaylorScalar, make_seed, flatten, get_coefficient,
                   set_coefficient, append_coefficient
 using TaylorSeries, TaylorIntegration
 using ODEProblemLibrary, OrdinaryDiffEq, BenchmarkTools, Symbolics
+SymbolicUtils.ENABLE_HASHCONSING[] = true
 
 # There are two ways to compute the Taylor coefficients of a ODE solution
 # 1. Using naive repeated differentiation
@@ -108,4 +109,12 @@ function simplify_array_test()
     @btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
     fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
     @btime $fast_oop($prob.u0, $t0)
+end
+
+@generated function evaluate_polynomial(t::TaylorScalar{T, P}, z) where {T, P}
+    ex = :(v[$(P + 1)])
+    for i in P:-1:1
+        ex = :(v[$i] + z * $ex)
+    end
+    return :($(Expr(:meta, :inline)); v = flatten(t); $ex)
 end

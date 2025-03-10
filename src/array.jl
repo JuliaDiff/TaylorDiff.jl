@@ -65,7 +65,7 @@ Base.@propagate_inbounds function Base.setindex!(
 end
 
 Base.@propagate_inbounds function Base.setindex!(
-        a::TaylorArray, s::Real, i::Int...)
+        a::TaylorArray, s, i::Int...)
     value(a)[i...] = s
     return a
 end

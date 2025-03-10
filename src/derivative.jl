@@ -1,7 +1,7 @@
 export derivative, derivative!, derivatives
 
 # Added to help Zygote infer types
-@inline make_seed(x::T, l::T, ::Val{P}) where {T <: Real, P} = TaylorScalar{P}(x, l)
+@inline make_seed(x::T, l::T, ::Val{P}) where {T <: Number, P} = TaylorScalar{P}(x, l)
 @inline make_seed(x::A, l::A, p) where {A <: AbstractArray} = broadcast(make_seed, x, l, p)
 
 """

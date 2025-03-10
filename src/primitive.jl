@@ -119,7 +119,7 @@ sincos(t::TaylorScalar) = (sin(t), cos(t))
 @inline *(a::TaylorScalar, b::Number) = TaylorScalar(value(a) * b, partials(a) .* b)
 @inline /(a::TaylorScalar, b::Number) = TaylorScalar(value(a) / b, partials(a) ./ b)
 
-const AMBIGUOUS_TYPES = (AbstractFloat, Irrational, Integer, Rational, Real, RoundingMode)
+const AMBIGUOUS_TYPES = (AbstractFloat, Irrational, Integer, Rational, Real, Complex, RoundingMode)
 
 for op in [:>, :<, :(==), :(>=), :(<=)]
     for R in AMBIGUOUS_TYPES
@@ -164,7 +164,7 @@ end
 @inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-1}) = inv(x)
 @inline literal_pow(::typeof(^), x::TaylorScalar, ::Val{-2}) = (i = inv(x); i * i)
 
-for R in (Integer, Real)
+for R in (Integer, Real, Complex)
     @eval @immutable function ^(t::TaylorScalar{T, P}, n::S) where {S <: $R, T, P}
         f = flatten(t)
         v[0] = f[0]^n

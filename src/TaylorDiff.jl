@@ -4,9 +4,9 @@ module TaylorDiff
     TaylorDiff.can_taylorize(V::Type)
 
 Determines whether the type V is allowed as the scalar type in a
-Dual. By default, only `<:Real` types are allowed.
+Dual. By default, only `<:Number` types are allowed.
 """
-can_taylorize(::Type{<:Real}) = true
+can_taylorize(::Type{<:Number}) = true
 can_taylorize(::Type) = false
 
 @noinline function throw_cannot_taylorize(V::Type)

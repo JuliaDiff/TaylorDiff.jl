@@ -57,7 +57,7 @@ function rrule(::typeof(Base.getindex), a::TaylorArray, i::Int...)
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-        t::AbstractVector{TaylorScalar{T, N}}) where {N, S <: Real, T <: Real}
+        t::AbstractVector{TaylorScalar{T, N}}) where {N, S, T}
     project_A = ProjectTo(A)
     function gemv_pullback(x̄)
         x̂ = reinterpret(reshape, T, x̄)
@@ -68,7 +68,7 @@ function rrule(::typeof(*), A::AbstractMatrix{S},
 end
 
 function rrule(::typeof(*), A::AbstractMatrix{S},
-        B::AbstractMatrix{TaylorScalar{T, N}}) where {N, S <: Real, T <: Real}
+        B::AbstractMatrix{TaylorScalar{T, N}}) where {N, S, T}
     project_A = ProjectTo(A)
     project_B = ProjectTo(B)
     function gemm_pullback(x̄)
