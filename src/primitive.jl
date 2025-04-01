@@ -119,7 +119,8 @@ sincos(t::TaylorScalar) = (sin(t), cos(t))
 @inline *(a::TaylorScalar, b::Number) = TaylorScalar(value(a) * b, partials(a) .* b)
 @inline /(a::TaylorScalar, b::Number) = TaylorScalar(value(a) / b, partials(a) ./ b)
 
-const AMBIGUOUS_TYPES = (AbstractFloat, Irrational, Integer, Rational, Real, Complex, RoundingMode)
+const AMBIGUOUS_TYPES = (
+    AbstractFloat, Irrational, Integer, Rational, Real, Complex, RoundingMode)
 
 for op in [:>, :<, :(==), :(>=), :(<=)]
     for R in AMBIGUOUS_TYPES

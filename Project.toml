@@ -1,7 +1,7 @@
 name = "TaylorDiff"
 uuid = "b36ab563-344f-407b-a36a-4f200bebf99c"
 authors = ["Songchen Tan <i@tansongchen.com>"]
-version = "0.3.2"
+version = "0.3.3"
 
 [deps]
 ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"

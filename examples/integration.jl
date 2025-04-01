@@ -90,7 +90,12 @@ function build_jetcoeffs(f::ODEFunction{iip}, p, ::Val{P}, length = nothing) whe
         d = get_coefficient(fu, index - 1) / index
         u = append_coefficient(u, d)
     end
-    build_function(u, u0, t0; expression = Val(false), cse = true)
+    u_term = make_term.(u)
+    build_function(u_term, u0, t0; expression = Val(false), cse = true)
+end
+
+function make_term(a)
+    term(TaylorScalar, Symbolics.unwrap(a.value), map(Symbolics.unwrap, a.partials))
 end
 
 function simplify_scalar_test()
@@ -110,6 +115,13 @@ function simplify_array_test()
     fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
     @btime $fast_oop($prob.u0, $t0)
 end
+
+P = 6
+prob = prob_ode_lotkavolterra
+t0 = prob.tspan[1]
+@btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(10), length(prob.u0));
+@btime $fast_oop($prob.u0, $t0)
 
 @generated function evaluate_polynomial(t::TaylorScalar{T, P}, z) where {T, P}
     ex = :(v[$(P + 1)])
