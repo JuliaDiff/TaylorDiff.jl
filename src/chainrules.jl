@@ -1,4 +1,4 @@
-import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing, @opt_out
+import ChainRulesCore: rrule, RuleConfig, ProjectTo, backing, @opt_out, unthunk
 using Base.Broadcast: broadcasted
 
 function rrule(::Type{TaylorScalar}, v::T, p::NTuple{N, T}) where {N, T}
@@ -25,6 +25,9 @@ function rrule(::typeof(partials), t::TaylorScalar{T, N}) where {N, T}
     end
     function partials_pullback(::ZeroTangent)
         NoTangent(), TaylorScalar(z, ntuple(j -> zero(T), Val(N)))
+    end
+    function partials_pullback(v̄::ChainRulesCore.AbstractThunk)
+        partials_pullback(unthunk(v̄))
     end
     return partials(t), partials_pullback
 end
