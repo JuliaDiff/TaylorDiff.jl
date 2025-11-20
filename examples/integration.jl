@@ -29,6 +29,20 @@ function jetcoeffs(f::ODEFunction{iip}, u0, p, t0, ::Val{P}) where {P, iip}
     u
 end
 
+function jetcoeffs_inplace!(u, fu, f::ODEFunction{true}, u0, p, t0, ::Val{P}) where {P}
+    t = TaylorScalar{P}(t0, one(t0))
+    for index in 1:P
+        if iip
+            f(fu, u, p, t)
+        else
+            fu = f(u, p, t)
+        end
+        d = get_coefficient(fu, index - 1) / index
+        u = set_coefficient(u, index, d)
+    end
+    u
+end
+
 function scalar_test()
     P = 6
     prob = prob_ode_linear
@@ -116,13 +130,6 @@ function simplify_array_test()
     @btime $fast_oop($prob.u0, $t0)
 end
 
-P = 6
-prob = prob_ode_lotkavolterra
-t0 = prob.tspan[1]
-@btime jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
-fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(10), length(prob.u0));
-@btime $fast_oop($prob.u0, $t0)
-
 @generated function evaluate_polynomial(t::TaylorScalar{T, P}, z) where {T, P}
     ex = :(v[$(P + 1)])
     for i in P:-1:1
@@ -130,3 +137,40 @@ fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(10), length(prob.u0));
     end
     return :($(Expr(:meta, :inline)); v = flatten(t); $ex)
 end
+
+prob = prob_ode_lotkavolterra
+t0 = prob.tspan[1]
+raw = Float64[]
+optimized = Float64[]
+orders = [2, 4, 6, 8, 10, 12]
+for P in orders
+    raw_time = @belapsed jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+    fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
+    optimized_time = @belapsed $fast_oop($prob.u0, $t0)
+    push!(raw, raw_time)
+    push!(optimized, optimized_time)
+end
+
+using CairoMakie
+
+colors = Makie.wong_colors()
+f = begin
+    f = Figure(resolution = (700, 400))
+    ax = Axis(f[1, 1],
+        xlabel = "Order",
+        ylabel = "Time for computing truncated Taylor series (s)",
+        title = "Effect of Symbolic Simplification on Computing Truncated Taylor Series",
+        xticks = orders,
+        yscale = log10
+    )
+
+    group = [fill(1, length(orders));
+             fill(2, length(orders))]
+    barplot!(ax, [orders; orders], [raw; optimized],
+        dodge = group,
+        color = colors[group])
+    elements = [PolyElement(polycolor = colors[i]) for i in 1:2]
+    Legend(f[1, 2], elements, ["Raw", "Optimized"], "Groups")
+    f
+end
+f
