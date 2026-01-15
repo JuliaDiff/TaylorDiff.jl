@@ -1,7 +1,10 @@
 using TaylorDiff: TaylorDiff, TaylorScalar, make_seed, flatten, get_coefficient,
                   set_coefficient, append_coefficient
 using TaylorSeries, TaylorIntegration
+using LinearAlgebra
 using ODEProblemLibrary, OrdinaryDiffEq, BenchmarkTools, Symbolics
+using CairoMakie
+
 SymbolicUtils.ENABLE_HASHCONSING[] = true
 
 # There are two ways to compute the Taylor coefficients of a ODE solution
@@ -138,39 +141,39 @@ end
     return :($(Expr(:meta, :inline)); v = flatten(t); $ex)
 end
 
-prob = prob_ode_lotkavolterra
-t0 = prob.tspan[1]
-raw = Float64[]
-optimized = Float64[]
-orders = [2, 4, 6, 8, 10, 12]
-for P in orders
-    raw_time = @belapsed jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
-    fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
-    optimized_time = @belapsed $fast_oop($prob.u0, $t0)
-    push!(raw, raw_time)
-    push!(optimized, optimized_time)
+function plot_simplification_effect()
+    prob = prob_ode_lotkavolterra
+    t0 = prob.tspan[1]
+    raw = Float64[]
+    optimized = Float64[]
+    orders = [2, 4, 6, 8, 10, 12]
+    for P in orders
+        raw_time = @belapsed jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+        fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
+        optimized_time = @belapsed $fast_oop($prob.u0, $t0)
+        push!(raw, raw_time)
+        push!(optimized, optimized_time)
+    end
+
+    colors = Makie.wong_colors()
+    f = begin
+        f = Figure(resolution = (700, 400))
+        ax = Axis(f[1, 1],
+            xlabel = "Order",
+            ylabel = "Time for computing truncated Taylor series (s)",
+            title = "Effect of Symbolic Simplification on Computing Truncated Taylor Series",
+            xticks = orders,
+            yscale = log10
+        )
+
+        group = [fill(1, length(orders));
+                 fill(2, length(orders))]
+        barplot!(ax, [orders; orders], [raw; optimized],
+            dodge = group,
+            color = colors[group])
+        elements = [PolyElement(polycolor = colors[i]) for i in 1:2]
+        Legend(f[1, 2], elements, ["Raw", "Optimized"], "Groups")
+        f
+    end
+    save("simplification_effect.png", f)
 end
-
-using CairoMakie
-
-colors = Makie.wong_colors()
-f = begin
-    f = Figure(resolution = (700, 400))
-    ax = Axis(f[1, 1],
-        xlabel = "Order",
-        ylabel = "Time for computing truncated Taylor series (s)",
-        title = "Effect of Symbolic Simplification on Computing Truncated Taylor Series",
-        xticks = orders,
-        yscale = log10
-    )
-
-    group = [fill(1, length(orders));
-             fill(2, length(orders))]
-    barplot!(ax, [orders; orders], [raw; optimized],
-        dodge = group,
-        color = colors[group])
-    elements = [PolyElement(polycolor = colors[i]) for i in 1:2]
-    Legend(f[1, 2], elements, ["Raw", "Optimized"], "Groups")
-    f
-end
-f
