@@ -142,11 +142,11 @@ end
 end
 
 function plot_simplification_effect()
-    prob = prob_ode_lotkavolterra
+    prob = ODEProblem(pcr3bp!, q0, tspan, p)
     t0 = prob.tspan[1]
     raw = Float64[]
     optimized = Float64[]
-    orders = [2, 4, 6, 8, 10, 12]
+    orders = [4, 6, 8, 10, 12]
     for P in orders
         raw_time = @belapsed jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
         fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
@@ -160,8 +160,8 @@ function plot_simplification_effect()
         f = Figure(resolution = (700, 400))
         ax = Axis(f[1, 1],
             xlabel = "Order",
-            ylabel = "Time for computing truncated Taylor series (s)",
-            title = "Effect of Symbolic Simplification on Computing Truncated Taylor Series",
+            ylabel = "Time for computing Taylor polynomial (s)",
+            title = "Effect of Symbolic Simplification on Computing Taylor Polynomial",
             xticks = orders,
             yscale = log10
         )
@@ -172,8 +172,92 @@ function plot_simplification_effect()
             dodge = group,
             color = colors[group])
         elements = [PolyElement(polycolor = colors[i]) for i in 1:2]
-        Legend(f[1, 2], elements, ["Raw", "Optimized"], "Groups")
+        Legend(f[1, 2], elements, ["Naive", "Simplified"], "Groups")
         f
     end
     save("simplification_effect.png", f)
 end
+
+plot_simplification_effect()
+
+@taylorize function pcr3bp!(dq, q, param, t)
+    local μ = param[1]
+    local onemμ = 1 - μ
+    x1 = q[1]-μ
+    x1sq = x1^2
+    y = q[2]
+    ysq = y^2
+    r1_1p5 = (x1sq+ysq)^1.5
+    x2 = q[1]+onemμ
+    x2sq = x2^2
+    r2_1p5 = (x2sq+ysq)^1.5
+    dq[1] = q[3] + q[2]
+    dq[2] = q[4] - q[1]
+    dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
+    dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
+    return nothing
+end
+
+V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
+H(x, y, px, py) = (px^2+py^2)/2 - (x*py-y*px) + V(x, y)
+H(x) = H(x...)
+t0 = 0.0
+μ = 0.01
+J0 = -1.58
+function py!(q0, J0)
+    @assert iszero(q0[2]) && iszero(q0[3]) # q0[2] and q0[3] have to be equal to zero
+    q0[4] = q0[1] + sqrt( q0[1]^2-2( V(q0[1], q0[2])-J0 ) )
+    nothing
+end
+q0 = [-0.8, 0.0, 0.0, 0.0]
+py!(q0, J0)
+q0
+tspan = (0.0, 2000.0)
+p = [μ]
+prob = ODEProblem(pcr3bp!, q0, tspan, p)
+raw = Float64[]
+optimized = Float64[]
+orders = [4, 6, 8, 10, 12]
+ti_raw = Float64[]
+ti_optimized = Float64[]
+for P in orders
+    raw_time = @belapsed jetcoeffs($prob.f, $prob.u0, $prob.p, $t0, Val($P))
+    fast_oop, fast_iip = build_jetcoeffs(prob.f, prob.p, Val(P), length(prob.u0))
+    optimized_time = @belapsed $fast_oop($prob.u0, $t0)
+    push!(raw, raw_time)
+    push!(optimized, optimized_time)
+    # TI
+    tt = Taylor1(0.0, P)
+    q = [Taylor1(x, P) for x in q0]
+    dq = [Taylor1(0.0, P) for x in q0]
+    qaux = [Taylor1(0.0, P) for x in q0]
+    a = TaylorIntegration._allocate_jetcoeffs!(Val(pcr3bp!), tt, q, dq, p)
+    ti_time = @belapsed TaylorIntegration.jetcoeffs!($pcr3bp!, $tt, $q, $dq, $qaux, $p)
+    ti_optimized_time = @belapsed TaylorIntegration.jetcoeffs!(Val(pcr3bp!), $tt, $q, $dq, $p, $a)
+    push!(ti_raw, ti_time)
+    push!(ti_optimized, ti_optimized_time)
+end
+
+colors = Makie.wong_colors()
+f = begin
+    f = Figure(resolution = (700, 400))
+    ax = Axis(f[1, 1],
+        xlabel = "Order",
+        ylabel = "Time for computing Taylor polynomial (s)",
+        title = "Effect of Symbolic Simplification on Computing Taylor Polynomial",
+        xticks = orders,
+        yscale = log10
+    )
+
+    group = [fill(1, length(orders));
+                fill(2, length(orders));
+                fill(3, length(orders));
+                fill(4, length(orders))]
+    barplot!(ax, [orders; orders; orders; orders], [raw; optimized; ti_raw; ti_optimized],
+        dodge = group,
+        color = colors[group])
+    elements = [PolyElement(polycolor = colors[i]) for i in 1:4]
+    Legend(f[1, 2], elements, ["Naive", "Simplified", "TI Naive", "TI Simplified"], "Groups")
+    f
+end
+save("simplification_with_ti.png", f)
