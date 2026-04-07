@@ -122,12 +122,13 @@ function build_jet(f, ::Val{iip}, p, order::Val{P}, length = nothing) where {P, 
     return jet
 end
 
-function build_propagator(f::ODEFunction{iip}, p, coeffs::NTuple{P, Float64}, length = nothing) where {P, iip}
+function build_propagator(f::ODEFunction{iip}, p, coeffs::NTuple{P1, Float64}, length = nothing) where {P1, iip}
     f = unwrapped_f(f)
     return build_propagator(f, Val{iip}(), p, coeffs, length)
 end
 
-function build_propagator(f, ::Val{iip}, p, coeffs::NTuple{P, Float64}, length = nothing) where {P, iip}
+function build_propagator(f, ::Val{iip}, p, coeffs::NTuple{P1, Float64}, length = nothing) where {P1, iip}
+    P = P1 - 1
     @variables t0::Real dt::Real
     u0 = isnothing(length) ? Symbolics.variable(:u0) : Symbolics.variables(:u0, 1:length)
     if iip
@@ -148,7 +149,7 @@ function build_propagator(f, ::Val{iip}, p, coeffs::NTuple{P, Float64}, length =
         d = get_coefficient(fu, index - 1) / index
         u = append_coefficient(u, d)
     end
-    ut = eval_taylor_polynomial(u, (1., coeffs...), dt)
+    ut = eval_taylor_polynomial(u, coeffs, dt)
     propagator = build_function(ut, u0, t0, dt; expression = Val(false), cse = true)
     jacobian = Symbolics.jacobian(ut, u0)
     d_propagator = build_function(jacobian, u0, t0, dt; expression = Val(false), cse = true)
