@@ -1,4 +1,6 @@
 using FiniteDifferences
+using SpecialFunctions
+using TaylorDiff.ChainRulesCore: frule, NoTangent, AbstractZero
 
 @testset "No derivative or linear" begin
     some_number, another_number = 1.9, 2.6
@@ -75,5 +77,47 @@ end
     )
     for (name, f) in f_id, t in offenders
         @test f(t) == t
+    end
+end
+
+@testset "Higher-order terms match the first-order rules" begin
+    # `get_term_raiser` takes the derivative expressions from DiffRules; check them against
+    # ChainRules' rules, which are used for the first order
+    domain = Dict(
+        asec => (1.3, -2.0), acsc => (1.3, -2.0), acosh => (1.3, 2.0), acoth => (1.3, -2.0),
+        log => (0.3, 2.0), log10 => (0.3, 2.0), log2 => (0.3, 2.0), asech => (0.3, 0.7),
+        erfcinv => (0.3, 1.5))
+    for f in (deg2rad, rad2deg, sinh, cosh, tanh, asin, acos, atan, asec, acsc, acot,
+            log, log10, log1p, log2, asinh, acosh, atanh, asech, acsch, acoth, abs, sign,
+            erf, erfc, erfcinv, erfcx, erfi),
+        x in get(domain, f, (0.3, -0.7))
+
+        term, raiser = TaylorDiff.get_term_raiser(f)
+        d = @eval let z = $x
+            $term
+        end
+        expected = frule((NoTangent(), 1.0), f, x)[2]
+        expected isa AbstractZero && (expected = 0.0)  # e.g., `sign`
+        @test (raiser === TaylorDiff.raiseinv ? inv(d) : d) ≈ expected
+    end
+end
+
+@testset "Derivatives of the form 1 / g are raised by division" begin
+    # Guards against changes in the form of the DiffRules expressions that would silently
+    # fall back to the slower and less accurate multiplication rule
+    for f in (asin, acos, atan, asec, acsc, acot, log, log10, log1p, log2,
+        asinh, acosh, atanh, asech, acsch, acoth)
+        @test TaylorDiff.get_term_raiser(f)[2] === TaylorDiff.raiseinv
+    end
+    for f in (deg2rad, rad2deg, sinh, cosh, tanh, abs, sign,
+        erf, erfc, erfcinv, erfcx, erfi)
+        @test TaylorDiff.get_term_raiser(f)[2] === TaylorDiff.raise
+    end
+end
+
+@testset "Higher-order derivatives preserve Float32" begin
+    for f in (deg2rad, rad2deg, sinh, cosh, tanh, atan, acot, log, log10, log1p, log2,
+            atanh, abs, sign, erf, erfc, erfcx, erfi)
+        @test derivative(f, 0.3f0, Val(3)) isa Float32
     end
 end

@@ -3,71 +3,34 @@
 
 using ChainRules
 using ChainRulesCore
-using Symbolics: Symbolics, @variables, @rule, unwrap, isdiv
-import SymbolicUtils
-using SymbolicUtils.Code: toexpr
+import DiffRules
 using MacroTools
-using MacroTools: prewalk, postwalk
+using MacroTools: prewalk, postwalk, @capture
 
 """
-Pick a strategy for raising the derivative of a function.
-If the derivative is like 1 over something, raise with the division rule;
-otherwise, raise with the multiplication rule.
+    get_term_raiser(func)
+
+Return the derivative of `func` as an expression in `z`, together with the strategy for raising
+it to higher orders: if the derivative is `inv(term)` or `1 / term` (possibly negated), `term`
+(respectively `-term`) is raised with the division rule [`raiseinv`](@ref); otherwise the
+derivative is raised with the multiplication rule [`raise`](@ref).
+
+The expression is evaluated on Taylor series, so it must equal the derivative as a function
+(not only numerically) and must not branch on values. Such expressions are taken from DiffRules,
+whose rules are value-free expressions by design (unlike ChainRules' rules, which are only
+meant to be evaluated on numbers).
 """
-function get_term_raiser end
-
-@static if pkgversion(Symbolics) < v"7"
-  function get_term_raiser(func)
-      @variables z
-      r1 = @rule -1 * (1 / ~x) => (-1) / ~x
-      der = frule((NoTangent(), true), func, z)[2]
-      term = unwrap(der)
-      maybe_rewrite = r1(term)
-      if maybe_rewrite !== nothing
-          term = maybe_rewrite
-      end
-      if isdiv(term) && (term.num == 1 || term.num == -1)
-          term.den * term.num, raiseinv
-      else
-          term, raise
-      end
-  end
-else
-    const COMMON_Z = only(@variables z)
-    const FALLBACK_RULE = (@rule -1 * (1 / ~x) => (-1) / ~x)
-
-    function is_plusminus_one(@nospecialize(x))
-        if x isa Int
-            return x == 1 || x == -1
-        elseif x isa Int32
-            return x == 1 || x == -1
-        elseif x isa Float64
-            return x == 1 || x == -1
-        elseif x isa Float32
-            return x == 1 || x == -1
-        elseif x isa Number
-            return (x == 1)::Bool || (x == -1)::Bool
-        else
-            return false
-        end
-    end
-
-    function get_term_raiser(func)
-        der = frule((NoTangent(), true), func, COMMON_Z)[2]
-        term = unwrap(der)
-        maybe_rewrite = FALLBACK_RULE(term)
-        if maybe_rewrite !== nothing
-            term = maybe_rewrite
-        end
-        if isdiv(term)
-            num, den = SymbolicUtils.arguments(term)
-            if SymbolicUtils.isconst(num) && is_plusminus_one(SymbolicUtils.unwrap_const(num))
-                return num * den, raiseinv
-            end
-        end
-        return term, raise
-    end
+function get_term_raiser(func)
+    f = nameof(func)
+    M = DiffRules.hasdiffrule(:Base, f, 1) ? :Base : nameof(parentmodule(func))
+    der = DiffRules.diffrule(M, f, :z)
+    @capture(der, inv(den_) | 1 / den_) && return den, raiseinv
+    @capture(der, -inv(den_) | -(1 / den_) | -1 / den_) && return :(-$den), raiseinv
+    return der, raise
 end
+# DiffRules' rule for `abs` branches on the sign of its argument, and it has no rule for `sign`
+get_term_raiser(::typeof(abs)) = :(sign(z)), raise
+get_term_raiser(::typeof(sign)) = :(zero(z)), raise
 
 function define_unary_function(func, m)
     F = typeof(func)
@@ -81,7 +44,7 @@ function define_unary_function(func, m)
     term, raiser = get_term_raiser(func)
     # Higher order: recursion by raising
     @eval m @generated function (op::$F)(t::TaylorScalar{T, p}) where {T, p}
-        expr = $(QuoteNode(toexpr(term)))
+        expr = $(QuoteNode(term))
         f = $func
         quote
             $(Expr(:meta, :inline))
