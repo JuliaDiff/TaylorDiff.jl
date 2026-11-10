@@ -12,8 +12,8 @@ using MacroTools: prewalk, postwalk, @capture
 
 Return the derivative of `func` as an expression in `z`, together with the strategy for raising
 it to higher orders: if the derivative is `inv(term)` or `1 / term` (possibly negated), `term`
-(respectively `-term`) is raised with the division rule [`raiseinv`](@ref); otherwise the
-derivative is raised with the multiplication rule [`raise`](@ref).
+(respectively `-term`) is raised with the division rule `raiseinv`; otherwise the
+derivative is raised with the multiplication rule `raise`.
 
 The expression is evaluated on Taylor series, so it must equal the derivative as a function
 (not only numerically) and must not branch on values. Such expressions are taken from DiffRules,
