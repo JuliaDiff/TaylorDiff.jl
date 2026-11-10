@@ -117,7 +117,7 @@ end
 
 @testset "Higher-order derivatives preserve Float32" begin
     for f in (deg2rad, rad2deg, sinh, cosh, tanh, atan, acot, log, log10, log1p, log2,
-            atanh, abs, sign, erf, erfc, erfcx, erfi)
+        atanh, abs, sign, erf, erfc, erfcx, erfi)
         @test derivative(f, 0.3f0, Val(3)) isa Float32
     end
 end
